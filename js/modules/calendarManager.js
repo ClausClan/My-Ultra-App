@@ -314,23 +314,61 @@ function renderDataDisplay() {
     }
 }
 
-function saveDataForDay(date) {
-    const dateKey = formatDateKey(date);
-    const dataToSave = JSON.parse(localStorage.getItem(`log-${dateKey}`)) || {};
-    let hasData = false;
-    Object.values(dataFields).flat().forEach(field => {
-        const inputElement = document.getElementById(`${field.id}-${dateKey}`);
-        if (inputElement) {
-            const value = field.type === 'checkbox' ? (inputElement.checked ? 'true' : 'false') : inputElement.value;
-            if (value && value.trim() !== '' && (field.type !== 'checkbox' || value === 'true')) hasData = true;
-            dataToSave[field.id] = value;
-        }
-    });
-    if (hasData || dataToSave.stravaData) {
-        localStorage.setItem(`log-${dateKey}`, JSON.stringify(dataToSave));
-    } else {
-        localStorage.removeItem(`log-${dateKey}`);
+// NY, FORBEDRET VERSION til js/modules/calendarManager.js
+
+async function saveDataForDay(date) {
+  const dateKey = formatDateKey(date);
+  
+  // 1. Saml alle data fra inputfelterne i et pænt objekt
+  const dataPayload = {
+    date: dateKey,
+  };
+
+  // Vi bruger de 'dataFields', du har defineret øverst i filen,
+  // for at samle data fra alle relevante input-felter.
+  Object.values(dataFields).flat().forEach(field => {
+    const inputElement = document.getElementById(`${field.id}-${dateKey}`);
+    if (inputElement) {
+      const value = field.type === 'checkbox' 
+        ? inputElement.checked 
+        : (inputElement.value || null); // Send null hvis feltet er tomt
+
+      // Konverter tal-felter til rigtige tal, hvis de har en værdi
+      if (inputElement.type === 'number' && value !== null) {
+        dataPayload[field.id] = parseFloat(value);
+      } else {
+        dataPayload[field.id] = value;
+      }
     }
+  });
+
+  // 2. Send data-pakken til vores backend-endpoint
+  try {
+    const response = await fetch('/api/save-daily-log', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(dataPayload), // Omdan vores objekt til en JSON-streng
+    });
+
+    if (!response.ok) {
+      // Hvis serveren svarer med en fejl, så vis den
+      const errorResult = await response.json();
+      throw new Error(errorResult.error || 'Noget gik galt på serveren');
+    }
+
+    const result = await response.json();
+    console.log(result.message); // Skriv "Log saved successfully!" i konsollen
+
+    // Her kan du evt. tilføje en lille visuel bekræftelse til brugeren
+    // f.eks. en grøn "Gemt!"-besked, der toner frem og forsvinder igen.
+
+  } catch (error) {
+    console.error('Fejl ved at gemme data:', error);
+    // Her kan du vise en fejlbesked til brugeren
+    alert(`Kunne ikke gemme data: ${error.message}`);
+  }
 }
 
 function estimatePte(stravaData, userProfile) {
