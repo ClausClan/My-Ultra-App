@@ -181,39 +181,26 @@ ${goalsString}
 Generate the complete JSON plan now.`;
 }
 
-async function callGemini(prompt, apiKey) {
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
-    
-    const payload = {
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-            "response_mime_type": "application/json",
-        },
-        safetySettings: [
-            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-        ],
-    };
+async function callGemini(prompt) {
+  // Vi kalder vores eget, sikre backend-endpoint på Vercel
+  const response = await fetch('/api/generate-plan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: prompt })
+  });
 
-    const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
+  if (!response.ok) {
+    const errorBody = await response.json();
+    throw new Error(`Fejl fra server: ${errorBody.error}`);
+  }
 
-    if (!response.ok) {
-        const errorBody = await response.json();
-        throw new Error(`API fejl: ${response.status} - ${errorBody.error.message || JSON.stringify(errorBody)}`);
-    }
-    const result = await response.json();
+  const result = await response.json();
 
-    if (result.candidates && result.candidates.length > 0) {
-        return result.candidates[0].content.parts[0].text;
-    } else {
-        throw new Error("Intet svar modtaget fra AI. Svaret kan være blevet blokeret.");
-    }
+  if (result.candidates && result.candidates.length > 0) {
+    return result.candidates[0].content.parts[0].text;
+  } else {
+    throw new Error("Intet svar modtaget fra AI via backend.");
+  }
 }
 
 function safeParseJson(jsonString) {
