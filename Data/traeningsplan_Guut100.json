@@ -1,0 +1,754 @@
+[
+  {
+    "date": "2025-08-01",
+    "week": 31,
+    "day": "Fredag",
+    "plan": "Easy run. 60 minutes at RPE 3-4. Focus on maintaining good form.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-02",
+    "week": 31,
+    "day": "Lørdag",
+    "plan": "Long run. 2 hours 30 minutes at RPE 3. Practice fueling with Precision Fuel and Hydration gels and electrolytes.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-03",
+    "week": 31,
+    "day": "Søndag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-04",
+    "week": 32,
+    "day": "Mandag",
+    "plan": "Easy run. 45 minutes at RPE 3.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-05",
+    "week": 32,
+    "day": "Tirsdag",
+    "plan": "Functional strength training. Focus on single-leg squats, lunges, plank, and glute bridges. 3 sets of 12-15 reps.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-06",
+    "week": 32,
+    "day": "Onsdag",
+    "plan": "Hill repeats. 6 x 3 minutes uphill at RPE 8-9, with easy jog down for recovery.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-07",
+    "week": 32,
+    "day": "Torsdag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-08",
+    "week": 32,
+    "day": "Fredag",
+    "plan": "Easy run. 60 minutes at RPE 3-4. Focus on maintaining good form.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-09",
+    "week": 32,
+    "day": "Lørdag",
+    "plan": "Long run. 2 hours 45 minutes at RPE 3. Practice fueling.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-10",
+    "week": 32,
+    "day": "Søndag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-11",
+    "week": 33,
+    "day": "Mandag",
+    "plan": "Easy run. 45 minutes at RPE 3.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-12",
+    "week": 33,
+    "day": "Tirsdag",
+    "plan": "Functional strength training. Focus on single-leg squats, lunges, plank, and glute bridges. 3 sets of 12-15 reps.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-13",
+    "week": 33,
+    "day": "Onsdag",
+    "plan": "Tempo run. 20 minutes at RPE 7, preceded and followed by 20 minutes easy running at RPE 3.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-14",
+    "week": 33,
+    "day": "Torsdag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-15",
+    "week": 33,
+    "day": "Fredag",
+    "plan": "Easy run. 60 minutes at RPE 3-4. Focus on maintaining good form.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-16",
+    "week": 33,
+    "day": "Lørdag",
+    "plan": "Long run. 3 hours at RPE 3. Practice fueling.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-17",
+    "week": 33,
+    "day": "Søndag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-18",
+    "week": 34,
+    "day": "Mandag",
+    "plan": "Easy run. 45 minutes at RPE 3.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-19",
+    "week": 34,
+    "day": "Tirsdag",
+    "plan": "Functional strength training. Focus on single-leg squats, lunges, plank, and glute bridges. 3 sets of 12-15 reps.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-20",
+    "week": 34,
+    "day": "Onsdag",
+    "plan": "Hill repeats. 8 x 3 minutes uphill at RPE 8-9, with easy jog down for recovery.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-21",
+    "week": 34,
+    "day": "Torsdag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-22",
+    "week": 34,
+    "day": "Fredag",
+    "plan": "Easy run. 60 minutes at RPE 3-4. Focus on maintaining good form.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-23",
+    "week": 34,
+    "day": "Lørdag",
+    "plan": "Long run. 3 hours 15 minutes at RPE 3. Practice fueling.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-24",
+    "week": 34,
+    "day": "Søndag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-25",
+    "week": 35,
+    "day": "Mandag",
+    "plan": "Easy run. 30 minutes at RPE 3.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-26",
+    "week": 35,
+    "day": "Tirsdag",
+    "plan": "Functional strength training. Light session, focusing on form. 2 sets of 12-15 reps.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-27",
+    "week": 35,
+    "day": "Onsdag",
+    "plan": "Easy run. 45 minutes at RPE 3.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-28",
+    "week": 35,
+    "day": "Torsdag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-29",
+    "week": 35,
+    "day": "Fredag",
+    "plan": "Easy run. 45 minutes at RPE 3-4. Focus on maintaining good form.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-30",
+    "week": 35,
+    "day": "Lørdag",
+    "plan": "Long run. 2 hours at RPE 3. Practice fueling.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-08-31",
+    "week": 35,
+    "day": "Søndag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-01",
+    "week": 36,
+    "day": "Mandag",
+    "plan": "Easy run. 45 minutes at RPE 3.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-02",
+    "week": 36,
+    "day": "Tirsdag",
+    "plan": "Functional strength training. Focus on single-leg squats, lunges, plank, and glute bridges. 3 sets of 12-15 reps.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-03",
+    "week": 36,
+    "day": "Onsdag",
+    "plan": "Hill repeats. 6 x 4 minutes uphill at RPE 8-9, with easy jog down for recovery.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-04",
+    "week": 36,
+    "day": "Torsdag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-05",
+    "week": 36,
+    "day": "Fredag",
+    "plan": "Easy run. 60 minutes at RPE 3-4. Focus on maintaining good form.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-06",
+    "week": 36,
+    "day": "Lørdag",
+    "plan": "Long run. 3 hours 30 minutes at RPE 3. Practice fueling.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-07",
+    "week": 36,
+    "day": "Søndag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-08",
+    "week": 37,
+    "day": "Mandag",
+    "plan": "Easy run. 45 minutes at RPE 3.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-09",
+    "week": 37,
+    "day": "Tirsdag",
+    "plan": "Functional strength training. Focus on single-leg squats, lunges, plank, and glute bridges. 3 sets of 12-15 reps.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-10",
+    "week": 37,
+    "day": "Onsdag",
+    "plan": "Tempo run. 25 minutes at RPE 7, preceded and followed by 20 minutes easy running at RPE 3.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-11",
+    "week": 37,
+    "day": "Torsdag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-12",
+    "week": 37,
+    "day": "Fredag",
+    "plan": "Easy run. 60 minutes at RPE 3-4. Focus on maintaining good form.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-13",
+    "week": 37,
+    "day": "Lørdag",
+    "plan": "Long run. 3 hours 45 minutes at RPE 3. Practice fueling.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-14",
+    "week": 37,
+    "day": "Søndag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-15",
+    "week": 38,
+    "day": "Mandag",
+    "plan": "Easy run. 45 minutes at RPE 3.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-16",
+    "week": 38,
+    "day": "Tirsdag",
+    "plan": "Functional strength training. Focus on single-leg squats, lunges, plank, and glute bridges. 3 sets of 12-15 reps.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-17",
+    "week": 38,
+    "day": "Onsdag",
+    "plan": "Hill repeats. 8 x 4 minutes uphill at RPE 8-9, with easy jog down for recovery.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-18",
+    "week": 38,
+    "day": "Torsdag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-19",
+    "week": 38,
+    "day": "Fredag",
+    "plan": "Easy run. 60 minutes at RPE 3-4. Focus on maintaining good form.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-20",
+    "week": 38,
+    "day": "Lørdag",
+    "plan": "Long run. 4 hours at RPE 3. Practice fueling.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-21",
+    "week": 38,
+    "day": "Søndag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-22",
+    "week": 39,
+    "day": "Mandag",
+    "plan": "Easy run. 30 minutes at RPE 3.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-23",
+    "week": 39,
+    "day": "Tirsdag",
+    "plan": "Functional strength training. Light session, focusing on form. 2 sets of 12-15 reps.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-24",
+    "week": 39,
+    "day": "Onsdag",
+    "plan": "Easy run. 45 minutes at RPE 3.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-25",
+    "week": 39,
+    "day": "Torsdag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-26",
+    "week": 39,
+    "day": "Fredag",
+    "plan": "Easy run. 45 minutes at RPE 3-4. Focus on maintaining good form.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-27",
+    "week": 39,
+    "day": "Lørdag",
+    "plan": "Long run. 2 hours 30 minutes at RPE 3. Practice fueling.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-28",
+    "week": 39,
+    "day": "Søndag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-29",
+    "week": 40,
+    "day": "Mandag",
+    "plan": "Easy run. 45 minutes at RPE 3.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-09-30",
+    "week": 40,
+    "day": "Tirsdag",
+    "plan": "Functional strength training. Focus on single-leg squats, lunges, plank, and glute bridges. 3 sets of 12-15 reps.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-01",
+    "week": 40,
+    "day": "Onsdag",
+    "plan": "Hill repeats. 5 x 5 minutes uphill at RPE 8-9, with easy jog down for recovery.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-02",
+    "week": 40,
+    "day": "Torsdag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-03",
+    "week": 40,
+    "day": "Fredag",
+    "plan": "Easy run. 60 minutes at RPE 3-4. Focus on maintaining good form.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-04",
+    "week": 40,
+    "day": "Lørdag",
+    "plan": "Long run. 3 hours at RPE 3. Practice fueling.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-05",
+    "week": 40,
+    "day": "Søndag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-06",
+    "week": 41,
+    "day": "Mandag",
+    "plan": "Easy run. 45 minutes at RPE 3.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-07",
+    "week": 41,
+    "day": "Tirsdag",
+    "plan": "Functional strength training. Focus on single-leg squats, lunges, plank, and glute bridges. 3 sets of 12-15 reps.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-08",
+    "week": 41,
+    "day": "Onsdag",
+    "plan": "Tempo run. 20 minutes at RPE 7, preceded and followed by 15 minutes easy running at RPE 3.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-09",
+    "week": 41,
+    "day": "Torsdag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-10",
+    "week": 41,
+    "day": "Fredag",
+    "plan": "Easy run. 60 minutes at RPE 3-4. Focus on maintaining good form.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-11",
+    "week": 41,
+    "day": "Lørdag",
+    "plan": "Long run. 2 hours at RPE 3. Practice fueling.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-12",
+    "week": 41,
+    "day": "Søndag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+    {
+    "date": "2025-10-13",
+    "week": 42,
+    "day": "Mandag",
+    "plan": "Easy run. 30 minutes at RPE 3.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-14",
+    "week": 42,
+    "day": "Tirsdag",
+    "plan": "Functional strength training. Light session, focusing on form. 2 sets of 12-15 reps.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-15",
+    "week": 42,
+    "day": "Onsdag",
+    "plan": "Easy run. 45 minutes at RPE 3.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-16",
+    "week": 42,
+    "day": "Torsdag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-17",
+    "week": 42,
+    "day": "Fredag",
+    "plan": "Easy run. 45 minutes at RPE 3-4. Focus on maintaining good form.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-18",
+    "week": 42,
+    "day": "Lørdag",
+    "plan": "Long run. 90 minutes at RPE 3. Practice fueling.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-19",
+    "week": 42,
+    "day": "Søndag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-20",
+    "week": 43,
+    "day": "Mandag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-21",
+    "week": 43,
+    "day": "Tirsdag",
+    "plan": "Easy run. 30 minutes at RPE 3",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-22",
+    "week": 43,
+    "day": "Onsdag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-23",
+    "week": 43,
+    "day": "Torsdag",
+    "plan": "Easy run. 30 minutes at RPE 3.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-24",
+    "week": 43,
+    "day": "Fredag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-25",
+    "week": 43,
+    "day": "Lørdag",
+    "plan": "Easy run. 45 minutes at RPE 3. Practice fueling.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-26",
+    "week": 43,
+    "day": "Søndag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-27",
+    "week": 44,
+    "day": "Mandag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-28",
+    "week": 44,
+    "day": "Tirsdag",
+    "plan": "Easy run. 30 minutes at RPE 3",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-29",
+    "week": 44,
+    "day": "Onsdag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-30",
+    "week": 44,
+    "day": "Torsdag",
+    "plan": "Easy run. 15 minutes at RPE 3.",
+    "isRestDay": false,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-10-31",
+    "week": 44,
+    "day": "Fredag",
+    "plan": "A-Mål: Guut100.",
+    "isRestDay": false,
+    "isRaceDay": true
+  },
+  {
+    "date": "2025-11-01",
+    "week": 44,
+    "day": "Lørdag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  },
+  {
+    "date": "2025-11-02",
+    "week": 44,
+    "day": "Søndag",
+    "plan": "Rest Day",
+    "isRestDay": true,
+    "isRaceDay": false
+  }
+]

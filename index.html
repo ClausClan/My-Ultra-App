@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Min Ultra App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+</head>
+<body>
+<header class="app-header">
+    <div class="header-content">
+        <div class="logo-container">
+            <img src="images/logo3.png" alt="UltraPeak Endurance Logo" class="app-logo">
+        </div>
+
+        <nav class="main-nav">
+            <button class="nav-btn active" data-page="hjem">Hjem</button>
+            <button class="nav-btn" data-page="loberdata">Løberdata</button>
+            <button class="nav-btn" data-page="kalender">Kalender</button>
+            <button class="nav-btn" data-page="plan">Plan</button>
+            <button class="nav-btn" data-page="analyse">Analyse</button>
+        </nav>
+    </div>
+</header>
+
+    <main class="container">
+        <!-- Hovedsiden (Hjem) -->
+        <section id="hjem" class="page active">
+            <div class="mb-6 flex items-center gap-4 p-4 bg-white rounded-lg shadow">
+                <img id="dashboard-thumbnail" src="" alt="Profilbillede" class="w-20 h-20 rounded-full object-cover">
+            <div>
+                <h2 class="text-2xl font-bold text-slate-800" id="dashboard-runner-name">Min Løberprofil</h2>
+                <p class="text-slate-500">Velkommen til dit dashboard.</p>
+            </div>
+        </div>
+            <div class="grid-container">
+                <div class="card">
+                    <h3 class="card-title">Plan Status</h3>
+                    <p id="planStatusText">Ingen aktiv plan. Importer en plan for at komme i gang.</p>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">Dagens Træning</h3>
+                    <p id="todayTrainingText">Ingen træning planlagt i dag.</p>
+                </div>
+                <div class="card full-width">
+                    <h3 class="card-title">Seneste 7 Dages Restitution</h3>
+                    <div class="recovery-dashboard">
+                        <div class="chart-wrapper"><canvas id="hrvChart"></canvas></div>
+                        <div class="chart-wrapper"><canvas id="rhrChart"></canvas></div>
+                        <div class="chart-wrapper"><canvas id="sleepChart"></canvas></div>
+                        <div class="chart-wrapper"><canvas id="vo2maxChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Løberdata -->
+        <section id="loberdata" class="page">
+            <div class="form-container">
+                <h2 class="form-title">Min Løberprofil</h2>
+                <div class="form-section">
+                    <h3 class="section-title">Personlige Data</h3>
+                        <div class="form-grid">
+                            <div class="input-group">
+                                <label for="runnerName">Navn</label>
+                                <input type="text" id="runnerName" class="data-input">
+                            </div>
+                            <div class="input-group">
+                                <label for="runnerDob">Fødselsdato</label>
+                                <input type="date" id="runnerDob" class="data-input">
+                            </div>
+                            <div class="input-group">
+                                <label>Beregnet Alder</label>
+                                <p id="calculatedAge" class="mt-2 text-lg font-semibold text-slate-700">-</p>
+                            </div>
+                            <div class="input-group">
+                                <label for="profilePicture">Profilbillede</label>
+                                <input type="file" id="profilePictureInput" accept="image/*" class="mt-1">
+                                <img id="profilePicturePreview" src="" class="mt-2 h-24 w-24 rounded-full object-cover">
+                            </div>
+                            <div class="input-group"><label for="runnerWeight">Vægt (kg)</label><input type="number" step="0.1" id="runnerWeight" class="data-input"></div>
+                            <div class="input-group"><label for="runnerHeight">Højde (cm)</label><input type="number" id="runnerHeight" class="data-input"></div>
+                        </div>
+                    </div>
+                <div class="form-section">
+                    <h3 class="section-title">Fysiologiske Data</h3>
+                    <div class="form-grid">
+                        <div class="input-group"><label for="restingHR">Hvilepuls</label><input type="number" id="restingHR" class="data-input"><p class="help-text">Din gennemsnitlige hvilepuls målt om morgenen.</p></div>
+                        <div class="input-group"><label for="maxHR">Max Puls</label><input type="number" id="maxHR" class="data-input"><p class="help-text">Din højest målte puls under maksimal anstrengelse.</p></div>
+                        <div class="input-group"><label for="criticalPower">Critical Power (Watt)</label><input type="number" id="criticalPower" class="data-input"><p class="help-text">Din tærskel-watt, ofte estimeret fra en test.</p></div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h3 class="section-title">Træningszoner</h3>
+                    <div class="form-grid-three">
+                        <div class="input-group"><label>Puls Zoner</label><input type="text" id="hrZone1" class="data-input" placeholder="Zone 1"><input type="text" id="hrZone2" class="data-input" placeholder="Zone 2"><input type="text" id="hrZone3" class="data-input" placeholder="Zone 3"><input type="text" id="hrZone4" class="data-input" placeholder="Zone 4"><input type="text" id="hrZone5" class="data-input" placeholder="Zone 5"></div>
+                        <div class="input-group"><label>Power Zoner (Watt)</label><input type="text" id="powerZone1" class="data-input" placeholder="Zone 1"><input type="text" id="powerZone2" class="data-input" placeholder="Zone 2"><input type="text" id="powerZone3" class="data-input" placeholder="Zone 3"><input type="text" id="powerZone4" class="data-input" placeholder="Zone 4"><input type="text" id="powerZone5" class="data-input" placeholder="Zone 5"></div>
+                        <div class="input-group"><label>Pace Zoner (min/km)</label><input type="text" id="paceZone1" class="data-input" placeholder="Zone 1"><input type="text" id="paceZone2" class="data-input" placeholder="Zone 2"><input type="text" id="paceZone3" class="data-input" placeholder="Zone 3"><input type="text" id="paceZone4" class="data-input" placeholder="Zone 4"><input type="text" id="paceZone5" class="data-input" placeholder="Zone 5"></div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h3 class="section-title">Erfaring</h3>
+                    <div class="input-group"><label for="runnerExperience">Beskriv din erfaring med trail/ultra</label><textarea id="runnerExperience" class="data-input" rows="4"></textarea><p class="help-text">Denne tekst kan bruges af AI'en til at generere bedre planer.</p></div>
+                </div>
+                <div class="form-section">
+                    <h3 class="section-title">Forbindelser</h3>
+                    <div id="stravaStatus" class="text-slate-600">Ikke forbundet.</div>
+                    <button id="connectStravaBtn" class="mt-4 bg-orange-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-orange-600 transition-colors">
+                        Forbind med Strava
+                    </button>
+                </div>
+                <div class="form-section">
+                    <h3 class="section-title">Profil Håndtering</h3>
+                    <div class="profile-buttons"><button id="saveProfileBtn">Gem Profil</button><button id="loadProfileBtn">Indlæs Profil</button><input type="file" id="profileFileInput" accept=".json" style="display: none;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Kalender -->
+        <section id="kalender" class="page">
+            <div class="flex flex-col lg:flex-row gap-8">
+                <div class="w-full lg:w-1/3 xl:w-1/4">
+                    <div class="bg-white p-4 rounded-lg shadow-lg">
+                        <div id="calendar-header" class="flex items-center justify-between mb-4">
+                            <button id="prev-month" class="p-2 rounded-full hover:bg-gray-100"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button>
+                            <h2 id="month-year" class="text-lg font-bold text-slate-800"></h2>
+                            <button id="next-month" class="p-2 rounded-full hover:bg-gray-100"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button>
+                        </div>
+                        <div class="flex">
+                            <div id="week-numbers" class="text-xs text-gray-400 font-semibold pr-2 space-y-1" style="margin-top: 2.25rem;"></div>
+                            <div class="flex-grow">
+                                <div class="grid grid-cols-7 text-center day-header mb-2"><span>M</span><span>T</span><span>O</span><span>T</span><span>F</span><span>L</span><span>S</span></div>
+                                <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="w-full lg:w-2/3 xl:w-3/4 flex flex-col gap-8">
+                    <div id="weekly-view-grid" class="grid grid-cols-1 md:grid-cols-7 gap-2"></div>
+                    <div class="bg-white p-6 rounded-lg shadow-lg">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+                            <h3 class="text-xl font-bold text-slate-800">Data for Valgt Dag</h3>
+                            <p id="strava-import-status" class="text-xs text-gray-500 mt-1"></p>
+                            <div class="flex items-center gap-4 mt-4 md:mt-0">
+                                <button id="import-strava-btn" style="display: none;" class="bg-orange-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2">
+                                    <svg style="width:20px;height:20px" viewBox="0 0 24 24"><path fill="currentColor" d="M15,13H16.5L12,21.5L7.5,13H9L4.5,4.5L12,13M19.5,4.5L15,13H16.5L12,21.5L7.5,13H9L4.5,4.5" /></svg>
+                                    Importer fra Strava
+                                </button>
+                                <button id="import-suunto-btn" class="bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2">
+                                    </button>
+                            </div>
+                        </div>
+
+                        <div class="border-b border-gray-200">
+                            <nav id="tabs" class="-mb-px flex gap-6">
+                                <button class="tab-btn active" data-tab="data">Træningsdata</button>
+                                <button class="tab-btn" data-tab="map">Rutekort</button>
+                            </nav>
+                        </div>
+                        <div id="data-display" class="pt-6">
+                            <div id="tab-content-data" class="tab-content active"></div>
+                            <div id="tab-content-map" class="tab-content"><div class="w-full h-80 bg-gray-200 rounded-md flex items-center justify-center"><p class="text-gray-500 font-semibold">Kortvisning af din rute vil blive vist her.</p></div></div>
+                                <div class="mt-6 border-t pt-4">
+                                <button id="toggle-strava-details-btn" style="display: none;" class="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors">
+                                    Vis flere Strava-detaljer...
+                                </button>
+                                <div id="strava-details-container" style="display: none;" class="mt-2 p-4 bg-gray-50 rounded-lg text-sm">
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">Kalender Datahåndtering</h3>
+               
+                <div class="flex justify-center items-center gap-4">
+                    <button id="syncStravaBtn" class="bg-orange-500 text-white font-semibold py-2 px-6 rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2">
+                        <svg style="width:20px;height:20px" viewBox="0 0 24 24"><path fill="currentColor" d="M15,13H16.5L12,21.5L7.5,13H9L4.5,4.5L12,13M19.5,4.5L15,13H16.5L12,21.5L7.5,13H9L4.5,4.5" /></svg>
+                        Synkroniser med Strava
+                    </button>
+
+                    <button id="save-calendar" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors">Gem Kalenderdata</button>
+                    <button id="load-calendar" class="bg-gray-200 text-gray-700 font-semibold py-2 px-6 rounded-lg hover:bg-gray-300 transition-colors">Importer Kalenderdata</button>
+                    <input type="file" id="calendar-file-input" class="hidden" accept=".json">
+                </div>
+            </div>
+        </section>
+
+        <!-- Plan -->
+        <section id="plan" class="page">
+            <h2 class="text-3xl font-bold text-center text-slate-800 mb-8">Træningsplan</h2>
+
+            <div class="card mb-8">
+                <div class="flex flex-col md:flex-row justify-center items-center gap-4">
+                    <button id="plan-import-btn" class="btn btn-primary">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                        Importer Træningsplan
+                    </button>
+                    <input type="file" id="plan-file-input" class="hidden" accept=".json">
+                    <a href="plan_generator.html" target="_blank" class="btn btn-secondary">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                        Opret Ny Plan med AI
+                    </a>
+                    <button id="reset-plan-btn" class="btn btn-danger">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        Nulstil Plan
+                    </button>
+                </div>
+            </div>
+
+            <div class="card mb-8">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">Planlagt Progression (Tidslinje)</h3>
+                <div class="w-full h-96">
+                    <canvas id="planTimelineChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <button id="prev-week-btn" class="p-2 rounded-full hover:bg-gray-100">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <h3 id="weekly-overview-title" class="text-xl font-bold text-slate-800"></h3>
+                    <button id="next-week-btn" class="p-2 rounded-full hover:bg-gray-100">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                </div>
+                <div id="weekly-bar-chart" class="grid grid-cols-7 gap-2 text-center"></div>
+            </div>
+
+            <div class="card">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">Detaljeret Plan</h3>
+                <div id="plan-details-view"></div>
+            </div>
+        </section>
+
+        <!-- Analyse -->
+        <section id="analyse" class="page">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <div class="card lg:col-span-2">
+                <h3 class="card-title">Progression: Aktuel vs. Planlagt</h3>
+                <div class="w-full h-96">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Ugentlig Overholdelse (Planlagt vs. Faktisk TSS)</h3>
+                <div class="w-full h-80">
+                    <canvas id="complianceChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Race Readiness & Formtopning</h3>
+                <div class="w-full h-80">
+                    <canvas id="raceReadinessChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                    <h3 class="card-title">HRV Tendens (7-dages gennemsnit)</h3>
+                    <div class="w-full h-80">
+                        <canvas id="hrvTrendChart"></canvas>
+                    </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Hvilepuls Tendens (7-dages gennemsnit)</h3>
+                <div class="w-full h-80">
+                    <canvas id="rhrTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+        </section>
+    </main>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
