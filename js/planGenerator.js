@@ -1,4 +1,3 @@
-import { GEMINI_API_KEY } from './modules/config.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const goalsContainer = document.getElementById('goals-container');
