@@ -1,4 +1,3 @@
-import { STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET } from './config.js';
 
 const TOKEN_URL = 'https://www.strava.com/oauth/token';
 const API_URL = 'https://www.strava.com/api/v3';
@@ -104,11 +103,40 @@ function redirectToStrava() {
 }
 
 async function getTokens(code) {
-    // ... Denne funktion er uændret fra forrige trin ...
+    const response = await fetch('/api/strava-auth', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ code: code })
+    });
+
+    if (!response.ok) {
+        throw new Error("Kunne ikke hente tokens fra serveren.");
+    }
+    
+    const data = await response.json();
+    
+    // Gem de modtagne data (tokens, athlete info osv.) i localStorage
+    localStorage.setItem('strava_access_token', data.access_token);
+    localStorage.setItem('strava_refresh_token', data.refresh_token);
+    localStorage.setItem('strava_token_expires_at', data.expires_at);
+    localStorage.setItem('strava_athlete_info', JSON.stringify(data.athlete));
+
+    // Genindlæs siden for at opdatere UI (eller opdater UI dynamisk)
+    window.location.href = window.location.pathname; // Fjerner query-parametre fra URL
 }
 
 function handleOAuthRedirect() {
-    // ... Denne funktion er uændret fra forrige trin ...
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+
+    if (code) {
+        console.log("Strava kode modtaget. Henter tokens...");
+        // Vis en loading-besked til brugeren
+        document.body.innerHTML = '<h1>Forbinder til Strava, vent venligst...</h1>';
+        getTokens(code);
+    }
 }
 
 export function initializeStravaConnection() {
