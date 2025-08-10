@@ -95,11 +95,30 @@ export async function fetchActivityDetails(activityId) {
 
 // --- Initialisering (fra forrige trin, let justeret) ---
 
-function redirectToStrava() {
-    const redirectUri = window.location.href.split('?')[0];
+// NY, FORBEDRET VERSION til js/modules/stravaManager.js
+
+async function redirectToStrava() {
+  try {
+    // 1. Spørg vores backend om den offentlige nøgle
+    const response = await fetch('/api/strava-config');
+    if (!response.ok) {
+      throw new Error('Kunne ikke hente Strava konfiguration fra serveren.');
+    }
+    const config = await response.json();
+    const stravaClientId = config.clientId;
+
+    // 2. Byg URL'en med den modtagne nøgle
+    const redirectUri = window.location.href.split('?')[0]; // Fjerner gamle parametre
     const scope = 'read,activity:read_all';
-    const authUrl = `https://www.strava.com/oauth/authorize?client_id=${STRAVA_CLIENT_ID}&response_type=code&redirect_uri=${redirectUri}&approval_prompt=force&scope=${scope}`;
+    const authUrl = `https://www.strava.com/oauth/authorize?client_id=${stravaClientId}&response_type=code&redirect_uri=${redirectUri}&approval_prompt=force&scope=${scope}`;
+
+    // 3. Omdiriger brugeren til Strava
     window.location.href = authUrl;
+
+  } catch (error) {
+    console.error('Fejl ved omdirigering til Strava:', error);
+    alert('Der opstod en fejl. Kunne ikke forbinde til Strava.');
+  }
 }
 
 async function getTokens(code) {
