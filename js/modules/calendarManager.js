@@ -139,7 +139,9 @@ function renderDataDisplay() {
     const dataContent = document.getElementById('tab-content-data');
     if (!dataContent) return;
 
+
     const dateKey = formatDateKey(selectedDate);
+    // RETTET: Kigger nu KUN i allLogs
     const savedData = allLogs.find(log => log.date === dateKey) || {};
     console.log(`--- CHECKPOINT 2: Data fundet for ${dateKey} ---`);
     console.log(savedData);
@@ -159,15 +161,15 @@ function renderDataDisplay() {
 
     formHTML += `<h4 class="font-bold text-lg mt-4 mb-2">Morgen Status</h4><div class="grid grid-cols-2 md:grid-cols-4 gap-4">`;
     dataFields.morning.forEach(f => {
-    const valueToRender = savedData[f.id] || '';
+            const valueToRender = savedData[f.id] || '';
     // Dette er det afgørende checkpoint
     if (f.id === 'hrv') {
         console.log(`--- CHECKPOINT 3: Værdi for HRV-feltet der skrives til HTML ---`);
         console.log(valueToRender);
         console.log("---------------------------------------------------------");
     }
-    formHTML += `<div><label for="${f.id}-${dateKey}" class="${labelClasses}">${f.label}</label><input type="number" id="${f.id}-${dateKey}" value="${valueToRender}" class="${inputClasses}"></div>`;
-});
+        formHTML += `<div><label for="${f.id}-${dateKey}" class="${labelClasses}">${f.label}</label><input type="number" id="${f.id}-${dateKey}" value="${savedData[f.id] || ''}" class="${inputClasses}"></div>`;
+    });
     formHTML += `</div>`;
 
     formHTML += `<h4 class="font-bold text-lg mt-6 mb-2">Træningsdata</h4><div class="grid grid-cols-2 md:grid-cols-4 gap-4">`;
@@ -180,6 +182,7 @@ function renderDataDisplay() {
     formHTML += `<div><label for="notes-${dateKey}" class="${labelClasses}">${dataFields.general[0].label}</label><textarea id="notes-${dateKey}" rows="4" class="${inputClasses}">${savedData.notes || ''}</textarea></div>`;
 
     dataContent.innerHTML = formHTML;
+
 
     
     // Tilføj listeners til de nye input-felter
