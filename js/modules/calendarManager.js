@@ -275,6 +275,13 @@ function renderDataDisplay() {
         }
     }
     
+    // Logik for den nye "Eksporter"-knap
+    addSafeListener('export-calendar', 'click', () => {
+        // Vi åbner simpelthen vores API-endpoint i en ny fane.
+        // Browseren vil automatisk downloade filen, fordi vi har konfigureret det i backenden.
+        window.open('/api/export-logs', '_blank');
+    });
+
     // ### GENINDSAT OG RETTET LOGIK FOR "MERE"-KNAPPEN ###
     const toggleBtn = document.getElementById('toggle-strava-details-btn');
     const detailsContainer = document.getElementById('strava-details-container');
@@ -429,6 +436,7 @@ export function initializeCalendar() {
         }
     };
     
+
     // OPDATERET: Logik for intelligent synkronisering
     addSafeListener('syncStravaBtn', 'click', async () => {
         const syncBtn = document.getElementById('syncStravaBtn');
