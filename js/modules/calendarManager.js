@@ -436,6 +436,43 @@ export function initializeCalendar() {
         window.open('/api/export-logs', '_blank');
     });
 
+
+    // Opdateret logik for "Importer"-knappen
+    addSafeListener('load-calendar', 'click', () => {
+        document.getElementById('calendar-file-input').click();
+    });
+
+    addSafeListener('calendar-file-input', 'change', (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const importedLogs = JSON.parse(e.target.result);
+
+                const response = await fetch('/api/bulk-save-logs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(importedLogs),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Serveren kunne ikke importere dataene.');
+                }
+
+                alert(`${importedLogs.length} logs blev importeret! Siden genindlæses for at vise de nye data.`);
+                location.reload(); // Genindlæs for at se de nye data
+
+            } catch (error) {
+                alert(`Fejl ved import: ${error.message}`);
+            }
+        };
+        reader.readAsText(file);
+    });
+
+
+
     // OPDATERET: Logik for intelligent synkronisering
     addSafeListener('syncStravaBtn', 'click', async () => {
         const syncBtn = document.getElementById('syncStravaBtn');
