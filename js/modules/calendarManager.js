@@ -159,8 +159,15 @@ function renderDataDisplay() {
 
     formHTML += `<h4 class="font-bold text-lg mt-4 mb-2">Morgen Status</h4><div class="grid grid-cols-2 md:grid-cols-4 gap-4">`;
     dataFields.morning.forEach(f => {
-        formHTML += `<div><label for="${f.id}-${dateKey}" class="${labelClasses}">${f.label}</label><input type="number" id="${f.id}-${dateKey}" value="${savedData[f.id] || ''}" class="${inputClasses}"></div>`;
-    });
+    const valueToRender = savedData[f.id] || '';
+    // Dette er det afgørende checkpoint
+    if (f.id === 'hrv') {
+        console.log(`--- CHECKPOINT 3: Værdi for HRV-feltet der skrives til HTML ---`);
+        console.log(valueToRender);
+        console.log("---------------------------------------------------------");
+    }
+    formHTML += `<div><label for="${f.id}-${dateKey}" class="${labelClasses}">${f.label}</label><input type="number" id="${f.id}-${dateKey}" value="${valueToRender}" class="${inputClasses}"></div>`;
+});
     formHTML += `</div>`;
 
     formHTML += `<h4 class="font-bold text-lg mt-6 mb-2">Træningsdata</h4><div class="grid grid-cols-2 md:grid-cols-4 gap-4">`;
@@ -174,16 +181,6 @@ function renderDataDisplay() {
 
     dataContent.innerHTML = formHTML;
 
-    dataFields.morning.forEach(f => {
-        const valueToRender = savedData[f.id] || '';
-        // Dette er det afgørende checkpoint
-        if (f.id === 'hrv') {
-            console.log(`--- CHECKPOINT 3: Værdi for HRV-feltet der skrives til HTML ---`);
-            console.log(valueToRender);
-            console.log("---------------------------------------------------------");
-        }
-        formHTML += `<div><label for="${f.id}-${dateKey}" class="${labelClasses}">${f.label}</label><input type="number" id="${f.id}-${dateKey}" value="${valueToRender}" class="${inputClasses}"></div>`;
-    });
     
     // Tilføj listeners til de nye input-felter
     dataContent.querySelectorAll('input, textarea').forEach(input => {
