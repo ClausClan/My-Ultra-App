@@ -225,6 +225,9 @@ export async function initializeCalendar() {
         const response = await fetch('/api/get-logs');
         if (!response.ok) throw new Error('Kunne ikke hente data');
         allLogs = await response.json();
+
+        debugger; // TILFØJ KUN DENNE ENE LINJE
+
         console.log(`Hentede ${allLogs.length} logs fra databasen.`);
     } catch (error) {
         console.error("Fejl ved hentning af logs:", error);
