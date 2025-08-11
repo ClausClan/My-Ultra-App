@@ -272,65 +272,69 @@ export async function initializeCalendar() {
 
     // GENOPBYGGET STRAVA SYNC
     addSafeListener('syncStravaBtn', 'click', async () => {
-        const syncBtn = document.getElementById('syncStravaBtn');
-        syncBtn.textContent = 'Henter liste...';
-        syncBtn.disabled = true;
+    const syncBtn = document.getElementById('syncStravaBtn');
+    const originalText = syncBtn.innerHTML;
+    syncBtn.textContent = 'Henter liste...';
+    syncBtn.disabled = true;
 
-        try {
-            const activities = await fetchActivities();
-            localStorage.setItem('strava_activities', JSON.stringify(activities));
-            stravaActivities = activities;
+    try {
+        // Trin 1: Hent de seneste aktiviteter fra Strava
+        const activities = await fetchActivities();
+        // Opdater vores lokale cache for en sikkerheds skyld
+        localStorage.setItem('strava_activities', JSON.stringify(activities));
+        stravaActivities = activities;
 
-            const importedActivityIds = new Set(allLogs.map(log => log.stravaActivityId).filter(id => id));
-            const newActivities = activities.filter(act => !importedActivityIds.has(act.id));
+        // Trin 2: Find ud af, hvilke aktiviteter vi allerede har importeret
+        // Vi kigger KUN i 'allLogs' fra databasen.
+        const importedActivityIds = new Set(allLogs.map(log => log.stravaActivityId).filter(id => id));
+        const newActivities = activities.filter(act => !importedActivityIds.has(act.id.toString()));
 
-            if (newActivities.length === 0) {
-                syncBtn.textContent = 'Alt er synkroniseret!';
-                setTimeout(() => { syncBtn.textContent = 'Synkroniser med Strava'; syncBtn.disabled = false; }, 2000);
-                renderAll();
-                return;
-            }
-
-            let logsToCreate = [];
-            for (let i = 0; i < newActivities.length; i++) {
-                const activity = newActivities[i];
-                syncBtn.textContent = `Henter ${i + 1} af ${newActivities.length}...`;
-                const fullDetails = await fetchActivityDetails(activity.id);
-                const details = fullDetails.summary;
-                const dateKey = details.start_date_local.split('T')[0];
-                
-                const newLog = {
-                    date: dateKey,
-                    distance: details.distance ? (details.distance / 1000).toFixed(2) : null,
-                    duration: details.moving_time ? Math.round(details.moving_time / 60) : null,
-                    elevation: details.total_elevation_gain ? Math.round(details.total_elevation_gain) : null,
-                    avg_hr: details.average_heartrate ? Math.round(details.average_heartrate) : null,
-                    avg_watt: details.average_watts ? Math.round(details.average_watts) : null,
-                    stravaActivityId: activity.id,
-                    stravaImportedAt: new Date().toISOString()
-                    // Vi gemmer ikke de fulde stravaData i databasen for at spare plads.
-                };
-                logsToCreate.push(newLog);
-            }
-
-            syncBtn.textContent = 'Gemmer i database...';
-            // Gem alle de nye logs i én omgang
-            const response = await fetch('/api/bulk-save-logs', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(logsToCreate),
-            });
-            if (!response.ok) throw new Error("Kunne ikke gemme synkroniserede data.");
-            
-            alert(`${logsToCreate.length} nye aktiviteter blev synkroniseret!`);
-            location.reload();
-
-        } catch (error) {
-            console.error("Fejl under Strava-synkronisering:", error);
-            alert("Der opstod en fejl under synkronisering.");
-            syncBtn.textContent = 'Fejl - Prøv igen';
-        } finally {
-            setTimeout(() => { syncBtn.textContent = 'Synkroniser med Strava'; syncBtn.disabled = false; }, 3000);
+        // Trin 3: Håndter situationen, hvis der ikke er noget nyt
+        if (newActivities.length === 0) {
+            syncBtn.textContent = 'Alt er synkroniseret!';
+            renderAll(); // Gen-tegn UI for en sikkerheds skyld
+            setTimeout(() => { syncBtn.innerHTML = originalText; syncBtn.disabled = false; }, 2000);
+            return;
         }
-    });
-}
+
+        // Trin 4: Byg en liste af nye logs, der skal gemmes
+        let logsToCreate = [];
+        for (let i = 0; i < newActivities.length; i++) {
+            const activity = newActivities[i];
+            syncBtn.textContent = `Henter detaljer ${i + 1}/${newActivities.length}...`;
+            
+            // Vi henter ikke fulde detaljer her for at gøre synkroniseringen hurtig.
+            // Det kan brugeren gøre manuelt senere, hvis nødvendigt.
+            const dateKey = activity.start_date_local.split('T')[0];
+            
+            const newLog = {
+                date: dateKey,
+                distance: activity.distance ? (activity.distance / 1000).toFixed(2) : null,
+                duration: activity.moving_time ? Math.round(activity.moving_time / 60) : null,
+                elevation: activity.total_elevation_gain ? Math.round(activity.total_elevation_gain) : null,
+                stravaActivityId: activity.id.toString() // Sørg for at gemme ID som tekst
+            };
+            logsToCreate.push(newLog);
+        }
+
+        // Trin 5: Gem alle de nye logs i databasen med ét enkelt, effektivt kald
+        syncBtn.textContent = 'Gemmer i database...';
+        const response = await fetch('/api/bulk-save-logs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(logsToCreate),
+        });
+        if (!response.ok) {
+            throw new Error("Kunne ikke gemme de synkroniserede data til databasen.");
+        }
+
+        alert(`${logsToCreate.length} nye aktiviteter blev synkroniseret! Siden genindlæses nu.`);
+        location.reload(); // Genindlæs for at vise de helt nye data
+
+    } catch (error) {
+        console.error("Fejl under Strava-synkronisering:", error);
+        alert(`Der opstod en fejl under synkronisering: ${error.message}`);
+        syncBtn.innerHTML = originalText;
+        syncBtn.disabled = false;
+    }
+});
