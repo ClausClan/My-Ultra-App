@@ -140,8 +140,10 @@ function renderDataDisplay() {
     if (!dataContent) return;
 
     const dateKey = formatDateKey(selectedDate);
-    // RETTET: Kigger nu KUN i allLogs
     const savedData = allLogs.find(log => log.date === dateKey) || {};
+    console.log(`--- CHECKPOINT 2: Data fundet for ${dateKey} ---`);
+    console.log(savedData);
+    console.log("---------------------------------------------------------");
 
     // Byg HTML-formularen dynamisk... (denne del er lang, men logikken er den samme)
     // Sørger for at `value` hentes fra `savedData` objektet.
@@ -172,6 +174,17 @@ function renderDataDisplay() {
 
     dataContent.innerHTML = formHTML;
 
+    dataFields.morning.forEach(f => {
+        const valueToRender = savedData[f.id] || '';
+        // Dette er det afgørende checkpoint
+        if (f.id === 'hrv') {
+            console.log(`--- CHECKPOINT 3: Værdi for HRV-feltet der skrives til HTML ---`);
+            console.log(valueToRender);
+            console.log("---------------------------------------------------------");
+        }
+        formHTML += `<div><label for="${f.id}-${dateKey}" class="${labelClasses}">${f.label}</label><input type="number" id="${f.id}-${dateKey}" value="${valueToRender}" class="${inputClasses}"></div>`;
+    });
+    
     // Tilføj listeners til de nye input-felter
     dataContent.querySelectorAll('input, textarea').forEach(input => {
         input.addEventListener('input', () => saveDataForDay(selectedDate));
@@ -227,6 +240,13 @@ export async function initializeCalendar() {
         console.error("Fejl ved hentning af logs:", error);
         allLogs = [];
     }
+
+    // I initializeCalendar() ...
+
+allLogs = await response.json();
+console.log("--- CHECKPOINT 1: Komplet data modtaget fra databasen ---");
+console.table(allLogs); // .table() giver en pænere visning
+console.log("---------------------------------------------------------");
     
     // RETTET: Henter fra localStorage, som er en cache
     activePlan = getActivePlan();
@@ -272,65 +292,60 @@ export async function initializeCalendar() {
 
     // GENOPBYGGET STRAVA SYNC
     addSafeListener('syncStravaBtn', 'click', async () => {
-        const syncBtn = document.getElementById('syncStravaBtn');
-        syncBtn.textContent = 'Henter liste...';
-        syncBtn.disabled = true;
+    const syncBtn = document.getElementById('syncStravaBtn');
+    const originalText = 'Synkroniser med Strava';
+    syncBtn.textContent = 'Henter aktivitetsliste...';
+    syncBtn.disabled = true;
 
         try {
             const activities = await fetchActivities();
             localStorage.setItem('strava_activities', JSON.stringify(activities));
             stravaActivities = activities;
 
+            // Tjekker for nye aktiviteter ved kun at bruge allLogs fra databasen
             const importedActivityIds = new Set(allLogs.map(log => log.stravaActivityId).filter(id => id));
-            const newActivities = activities.filter(act => !importedActivityIds.has(act.id));
+            const newActivities = activities.filter(act => !importedActivityIds.has(act.id.toString()));
 
             if (newActivities.length === 0) {
                 syncBtn.textContent = 'Alt er synkroniseret!';
-                setTimeout(() => { syncBtn.textContent = 'Synkroniser med Strava'; syncBtn.disabled = false; }, 2000);
-                renderAll();
+                setTimeout(() => { syncBtn.textContent = originalText; syncBtn.disabled = false; }, 2000);
                 return;
             }
 
-            let logsToCreate = [];
-            for (let i = 0; i < newActivities.length; i++) {
-                const activity = newActivities[i];
-                syncBtn.textContent = `Henter ${i + 1} af ${newActivities.length}...`;
-                const fullDetails = await fetchActivityDetails(activity.id);
-                const details = fullDetails.summary;
-                const dateKey = details.start_date_local.split('T')[0];
-                
-                const newLog = {
+            syncBtn.textContent = `Fandt ${newActivities.length} nye. Forbereder...`;
+            
+            // Bygger en liste af nye logs ud fra de grundlæggende data (hurtigt!)
+            const logsToCreate = newActivities.map(activity => {
+                const dateKey = activity.start_date_local.split('T')[0];
+                return {
                     date: dateKey,
-                    distance: details.distance ? (details.distance / 1000).toFixed(2) : null,
-                    duration: details.moving_time ? Math.round(details.moving_time / 60) : null,
-                    elevation: details.total_elevation_gain ? Math.round(details.total_elevation_gain) : null,
-                    avg_hr: details.average_heartrate ? Math.round(details.average_heartrate) : null,
-                    avg_watt: details.average_watts ? Math.round(details.average_watts) : null,
-                    stravaActivityId: activity.id,
-                    stravaImportedAt: new Date().toISOString()
-                    // Vi gemmer ikke de fulde stravaData i databasen for at spare plads.
+                    distance: activity.distance ? (activity.distance / 1000).toFixed(2) : null,
+                    duration: activity.moving_time ? Math.round(activity.moving_time / 60) : null,
+                    elevation: activity.total_elevation_gain ? Math.round(activity.total_elevation_gain) : null,
+                    stravaActivityId: activity.id.toString() // Vigtigt: Gem ID som tekst for at undgå fejl
                 };
-                logsToCreate.push(newLog);
-            }
+            });
 
+            // Gemmer alle nye logs i databasen med ét enkelt, effektivt kald
             syncBtn.textContent = 'Gemmer i database...';
-            // Gem alle de nye logs i én omgang
             const response = await fetch('/api/bulk-save-logs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(logsToCreate),
             });
-            if (!response.ok) throw new Error("Kunne ikke gemme synkroniserede data.");
-            
-            alert(`${logsToCreate.length} nye aktiviteter blev synkroniseret!`);
+
+            if (!response.ok) {
+                throw new Error("Kunne ikke gemme synkroniserede data til databasen.");
+            }
+
+            alert(`${logsToCreate.length} nye aktiviteter blev synkroniseret! Siden genindlæses nu.`);
             location.reload();
 
         } catch (error) {
             console.error("Fejl under Strava-synkronisering:", error);
-            alert("Der opstod en fejl under synkronisering.");
-            syncBtn.textContent = 'Fejl - Prøv igen';
-        } finally {
-            setTimeout(() => { syncBtn.textContent = 'Synkroniser med Strava'; syncBtn.disabled = false; }, 3000);
+            alert(`Der opstod en fejl under synkronisering: ${error.message}`);
+            syncBtn.textContent = originalText;
+            syncBtn.disabled = false;
         }
     });
 }
