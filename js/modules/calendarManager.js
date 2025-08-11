@@ -143,10 +143,7 @@ function renderDataDisplay() {
     const dateKey = formatDateKey(selectedDate);
     // RETTET: Kigger nu KUN i allLogs
     const savedData = allLogs.find(log => log.date === dateKey) || {};
-    console.log(`--- CHECKPOINT 2: Data fundet for ${dateKey} ---`);
-    console.log(savedData);
-    console.log("---------------------------------------------------------");
-
+    
     // Byg HTML-formularen dynamisk... (denne del er lang, men logikken er den samme)
     // Sørger for at `value` hentes fra `savedData` objektet.
     let formHTML = `<p class="font-semibold mb-4 text-gray-700">Viser data for: ${selectedDate.toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long' })}</p>`;
@@ -161,13 +158,6 @@ function renderDataDisplay() {
 
     formHTML += `<h4 class="font-bold text-lg mt-4 mb-2">Morgen Status</h4><div class="grid grid-cols-2 md:grid-cols-4 gap-4">`;
     dataFields.morning.forEach(f => {
-            const valueToRender = savedData[f.id] || '';
-    // Dette er det afgørende checkpoint
-    if (f.id === 'hrv') {
-        console.log(`--- CHECKPOINT 3: Værdi for HRV-feltet der skrives til HTML ---`);
-        console.log(valueToRender);
-        console.log("---------------------------------------------------------");
-    }
         formHTML += `<div><label for="${f.id}-${dateKey}" class="${labelClasses}">${f.label}</label><input type="number" id="${f.id}-${dateKey}" value="${savedData[f.id] || ''}" class="${inputClasses}"></div>`;
     });
     formHTML += `</div>`;
