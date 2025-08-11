@@ -230,13 +230,6 @@ export async function initializeCalendar() {
         console.error("Fejl ved hentning af logs:", error);
         allLogs = [];
     }
-
-    // I initializeCalendar() ...
-
-allLogs = await response.json();
-console.log("--- CHECKPOINT 1: Komplet data modtaget fra databasen ---");
-console.table(allLogs); // .table() giver en pænere visning
-console.log("---------------------------------------------------------");
     
     // RETTET: Henter fra localStorage, som er en cache
     activePlan = getActivePlan();
