@@ -241,15 +241,27 @@ async function saveDataForDay(date) {
 // --- INITIALISERING OG EVENT LISTENERS ---
 export async function initializeCalendar() {
     try {
-        const response = await fetch('/api/get-logs');
-        if (!response.ok) throw new Error('Kunne ikke hente data');
-        allLogs = await response.json();
+    const response = await fetch('/api/get-logs');
+    if (!response.ok) throw new Error('Kunne ikke hente data');
+    const rawLogs = await response.json(); // 1. Hent de rå, "rodede" data
 
-        console.log(`Hentede ${allLogs.length} logs fra databasen.`);
-    } catch (error) {
-        console.error("Fejl ved hentning af logs:", error);
-        allLogs = [];
-    }
+    // 2. NYT, VIGTIGT TRIN: Ryd op i dataene
+    const logsByDate = {};
+    rawLogs.forEach(log => {
+        // For hver dato, gem kun den log, der er oprettet senest
+        if (!logsByDate[log.date] || new Date(log.created_at) > new Date(logsByDate[log.date].created_at)) {
+            logsByDate[log.date] = log;
+        }
+    });
+    // 3. Konverter tilbage til et rent array, hvor der kun er én log pr. dato
+    allLogs = Object.values(logsByDate); 
+    
+    console.log(`Hentede ${rawLogs.length} rå logs og efterlod ${allLogs.length} unikke, seneste logs.`);
+
+} catch (error) {
+    console.error("Fejl ved hentning af logs:", error);
+    allLogs = [];
+}
     
     // RETTET: Henter fra localStorage, som er en cache
     activePlan = getActivePlan();
