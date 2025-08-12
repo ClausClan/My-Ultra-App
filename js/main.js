@@ -195,33 +195,46 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 4. NYT: Håndterer den valgte fil, når den er blevet importeret
     profileFileInput?.addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const importedData = JSON.parse(e.target.result);
-                
-                // Udfyld formularen med de importerede data
-                const allDataInputs = document.querySelectorAll('#loberdata .data-input');
-                allDataInputs.forEach(input => {
-                    if (importedData[input.id]) {
-                        input.value = importedData[input.id];
-                    }
-                });
-                
-                // Opdater UI (f.eks. beregn alder igen)
-                initializeProfilePageCalculations();
-                alert('Profilen er indlæst i formularen. Tryk på "Gem Profil i Database" for at gemme ændringerne permanent.');
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            
+            // Trin 1: Udfyld de almindelige felter som før
+            document.querySelectorAll('#loberdata .data-input').forEach(input => {
+                if (importedData[input.id]) {
+                    input.value = importedData[input.id];
+                }
+            });
 
-            } catch (error) {
-                console.error("Fejl ved indlæsning af profilfil:", error);
-                alert("Ugyldig profilfil. Vælg venligst en korrekt formateret .json fil.");
+            // Trin 2: NYT - Udfyld zone-data fra arrays i filen
+            const zoneTypes = { hr: 'hr_zones', power: 'power_zones', pace: 'pace_zones' };
+            for (const prefix in zoneTypes) {
+                const arrayKey = zoneTypes[prefix];
+                // Tjek om .json-filen indeholder et array for denne zone-type
+                if (importedData[arrayKey] && Array.isArray(importedData[arrayKey])) {
+                    importedData[arrayKey].forEach((value, index) => {
+                        const input = document.getElementById(`${prefix}Zone${index + 1}`);
+                        if (input) {
+                            input.value = value || '';
+                        }
+                    });
+                }
             }
-        };
-        reader.readAsText(file);
-    });
+            
+            initializeProfilePageCalculations();
+            alert('Profilen er indlæst. Tryk på "Gem Profil i Database" for at gemme ændringerne permanent.');
+
+        } catch (error) {
+            console.error("Fejl ved indlæsning af profilfil:", error);
+            alert("Ugyldig profilfil. Vælg venligst en korrekt formateret .json fil.");
+        }
+    };
+    reader.readAsText(file);
+});
 
     // --- INITIALISER ALLE MODULER OG SIDER ---
     // Rækkefølgen her kan være vigtig
