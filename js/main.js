@@ -1,4 +1,4 @@
-// main.js - FULDT RETTET VERSION (12. AUGUST 2025)
+// main.js - FULDSTÆNDIG RETTET VERSION TIL PROFIL-HÅNDTERING (12. AUGUST 2025)
 
 import { initializeCalendar } from './modules/calendarManager.js';
 import { updateHomePageDashboard } from './modules/chartManager.js';
@@ -6,49 +6,87 @@ import { initializePlanPage, getActivePlan } from './modules/planManager.js';
 import { initializeAnalysePage } from './modules/analyseManager.js';
 import { initializeStravaConnection } from './modules/stravaManager.js';
 
-// --- PROFIL-FUNKTIONER (DATABASE-DREVET) ---
+// --- NYE, CENTRALE HJÆLPEFUNKTIONER ---
 
-// Funktion til at hente profildata fra databasen og udfylde formularen
+/**
+ * Samler ALLE data fra Løberdata-formularen og returnerer et rent JavaScript-objekt.
+ * Bruges af både Gem og Eksporter.
+ */
+function collectProfileDataFromForm() {
+    const profileData = {};
+    // Indsaml alle de "normale" data-felter
+    document.querySelectorAll('#loberdata .data-input').forEach(input => {
+        if (input.value) profileData[input.id] = input.value;
+    });
+
+    // Indsaml zone-data og byg arrays
+    const zoneTypes = { hr: 'hr_zones', power: 'power_zones', pace: 'pace_zones' };
+    for (const prefix in zoneTypes) {
+        const arrayKey = zoneTypes[prefix];
+        profileData[arrayKey] = [];
+        for (let i = 1; i <= 5; i++) {
+            const input = document.getElementById(`${prefix}Zone${i}`);
+            if (input) {
+                profileData[arrayKey].push(input.value || null);
+            }
+        }
+    }
+    return profileData;
+}
+
+/**
+ * Tager et JavaScript-objekt med profildata og udfylder hele Løberdata-formularen.
+ * Bruges af både Hent fra Database og Importer.
+ * @param {object} profileData - Objektet med profildata.
+ */
+function populateFormWithProfileData(profileData) {
+    if (!profileData) return;
+
+    // Udfyld de "normale" data-felter
+    document.querySelectorAll('#loberdata .data-input').forEach(input => {
+        if (profileData[input.id]) {
+            input.value = profileData[input.id];
+        } else {
+            input.value = ''; // Ryd feltet, hvis data ikke findes
+        }
+    });
+
+    // Udfyld zone-data fra arrays
+    const zoneTypes = { hr: 'hr_zones', power: 'power_zones', pace: 'pace_zones' };
+    for (const prefix in zoneTypes) {
+        const arrayKey = zoneTypes[prefix];
+        for (let i = 1; i <= 5; i++) {
+            const input = document.getElementById(`${prefix}Zone${i}`);
+            if (input) {
+                const value = (profileData[arrayKey] && profileData[arrayKey][i - 1]) ? profileData[arrayKey][i - 1] : '';
+                input.value = value;
+            }
+        }
+    }
+    
+    personalizeDashboard(profileData.runnerName);
+    initializeProfilePageCalculations();
+}
+
+// --- ANDRE FUNKTIONER ---
 async function loadProfileData() {
     try {
         const response = await fetch('/api/get-profile');
         if (!response.ok) {
-            if (response.status === 404 || response.status === 204) return;
+            if (response.status === 404 || response.status === 204) {
+                 console.log("Ingen profil fundet i databasen. Det er ok.");
+                 return;
+            }
             throw new Error('Serverfejl ved hentning af profil');
         }
         
         const profileData = await response.json();
-        if (!profileData) return;
-        
-        // Udfyld de "normale" data-felter
-        document.querySelectorAll('#loberdata .data-input').forEach(input => {
-            if (profileData[input.id]) {
-                input.value = profileData[input.id];
-            }
-        });
-
-        // NYT: Udfyld zone-data fra arrays
-        const zoneTypes = { hr: 'hr_zones', power: 'power_zones', pace: 'pace_zones' };
-        for (const prefix in zoneTypes) {
-            const arrayKey = zoneTypes[prefix];
-            if (profileData[arrayKey] && Array.isArray(profileData[arrayKey])) {
-                profileData[arrayKey].forEach((value, index) => {
-                    const input = document.getElementById(`${prefix}Zone${index + 1}`);
-                    if (input) {
-                        input.value = value || '';
-                    }
-                });
-            }
-        }
-        
-        personalizeDashboard(profileData.runnerName);
-        initializeProfilePageCalculations();
+        populateFormWithProfileData(profileData);
     } catch (error) {
         console.error("Fejl ved indlæsning af profil:", error);
     }
 }
 
-// Funktion til at håndtere alder og profilbillede (uden save/load)
 function initializeProfilePageCalculations() {
     const runnerDobInput = document.getElementById('runnerDob');
     const calculatedAgeEl = document.getElementById('calculatedAge');
@@ -59,23 +97,19 @@ function initializeProfilePageCalculations() {
         const today = new Date();
         let age = today.getFullYear() - birthDate.getFullYear();
         const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
         return age;
     };
     
     runnerDobInput?.addEventListener('input', () => {
-        calculatedAgeEl.textContent = calculateAge(runnerDobInput.value);
+        if(calculatedAgeEl) calculatedAgeEl.textContent = calculateAge(runnerDobInput.value);
     });
 
-    // Kør en gang ved start for at vise den alder, der er loadet fra databasen
-    if (runnerDobInput.value) {
-         calculatedAgeEl.textContent = calculateAge(runnerDobInput.value);
+    if (runnerDobInput && runnerDobInput.value) {
+         if(calculatedAgeEl) calculatedAgeEl.textContent = calculateAge(runnerDobInput.value);
     }
 }
 
-// Opdaterer dashboard med navn
 function personalizeDashboard(name) {
     const nameEl = document.getElementById('dashboard-runner-name');
     if (nameEl && name) {
@@ -83,10 +117,8 @@ function personalizeDashboard(name) {
     } else if (nameEl) {
         nameEl.textContent = `Min Løberprofil`;
     }
-    // Profilbillede-logik kan tilføjes her senere, hvis det skal gemmes i databasen
 }
 
-// Opdaterer status på forsiden
 function updateHomepageStatus() {
     const planStatusText = document.getElementById('planStatusText');
     const todayTrainingText = document.getElementById('todayTrainingText');
@@ -103,10 +135,9 @@ function updateHomepageStatus() {
     }
 }
 
-// --- APPENS "MOTOR" - STARTER NÅR SIDEN ER KLAR ---
+// --- APPENS "MOTOR" ---
 document.addEventListener('DOMContentLoaded', function() {
     
-    // --- NAVIGATION (VIGTIGT AT DENNE ER HER!) ---
     const navButtons = document.querySelectorAll('.nav-btn');
     const pages = document.querySelectorAll('.page');
     navButtons.forEach(button => {
@@ -114,69 +145,39 @@ document.addEventListener('DOMContentLoaded', function() {
             navButtons.forEach(btn => btn.classList.remove('active'));
             pages.forEach(page => page.classList.remove('active'));
             button.classList.add('active');
-            const pageId = button.dataset.page;
-            document.getElementById(pageId).classList.add('active');
-
-            if (pageId === 'hjem') {
-                updateHomePageDashboard();
-                updateHomepageStatus();
-                // Navnet på dashboardet bliver opdateret, når profilen er hentet
-            }
+            document.getElementById(button.dataset.page).classList.add('active');
         });
     });
 
-    // --- GEM PROFIL KNAP (DATABASE-DREVET) ---
     document.getElementById('saveProfileBtn')?.addEventListener('click', async () => {
-    const saveButton = document.getElementById('saveProfileBtn');
-    saveButton.textContent = "Gemmer...";
-    saveButton.disabled = true;
+        const saveButton = document.getElementById('saveProfileBtn');
+        saveButton.textContent = "Gemmer...";
+        saveButton.disabled = true;
 
-    const profileData = {};
-    // Indsaml alle de "normale" data-felter
-    document.querySelectorAll('#loberdata .data-input').forEach(input => {
-        if (input.value) profileData[input.id] = input.value;
+        const profileData = collectProfileDataFromForm();
+
+        try {
+            const response = await fetch('/api/save-profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(profileData)
+            });
+            if (!response.ok) throw new Error("Serveren kunne ikke gemme profilen.");
+            saveButton.textContent = "Profil Gemt!";
+            personalizeDashboard(profileData.runnerName);
+        } catch (error) {
+            console.error("Fejl ved at gemme profil:", error);
+            saveButton.textContent = "Fejl - Prøv Igen";
+        } finally {
+            setTimeout(() => {
+                saveButton.textContent = "Gem Profil i Database";
+                saveButton.disabled = false;
+            }, 2000);
+        }
     });
 
-    // NYT: Indsaml zone-data og byg arrays
-    const zoneTypes = { hr: 'hr_zones', power: 'power_zones', pace: 'pace_zones' };
-    for (const prefix in zoneTypes) {
-        const arrayKey = zoneTypes[prefix];
-        profileData[arrayKey] = [];
-        for (let i = 1; i <= 5; i++) {
-            const input = document.getElementById(`${prefix}Zone${i}`);
-            if (input) {
-                profileData[arrayKey].push(input.value || null);
-            }
-        }
-    }
-
-    try {
-        const response = await fetch('/api/save-profile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(profileData)
-        });
-        if (!response.ok) throw new Error("Serveren kunne ikke gemme profilen.");
-        saveButton.textContent = "Profil Gemt!";
-    } catch (error) {
-        console.error("Fejl ved at gemme profil:", error);
-        saveButton.textContent = "Fejl - Prøv Igen";
-    } finally {
-        setTimeout(() => {
-            saveButton.textContent = "Gem Profil i Database";
-            saveButton.disabled = false;
-        }, 2000);
-    }
-});
-
-// 2. NYT: Eksporterer den aktuelle profil til en .json-fil
     document.getElementById('exportProfileBtn')?.addEventListener('click', () => {
-        const profileData = {};
-        const allDataInputs = document.querySelectorAll('#loberdata .data-input');
-        allDataInputs.forEach(input => {
-            profileData[input.id] = input.value;
-        });
-
+        const profileData = collectProfileDataFromForm();
         const dataStr = JSON.stringify(profileData, null, 2);
         const dataBlob = new Blob([dataStr], {type: "application/json"});
         const link = document.createElement('a');
@@ -188,61 +189,32 @@ document.addEventListener('DOMContentLoaded', function() {
         URL.revokeObjectURL(link.href);
     });
 
-    // 3. NYT: Starter import-processen ved at åbne fil-vælgeren
     const loadProfileBtn = document.getElementById('loadProfileBtn');
     const profileFileInput = document.getElementById('profileFileInput');
     loadProfileBtn?.addEventListener('click', () => profileFileInput.click());
 
-    // 4. NYT: Håndterer den valgte fil, når den er blevet importeret
     profileFileInput?.addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const importedData = JSON.parse(e.target.result);
-            
-            // Trin 1: Udfyld de almindelige felter som før
-            document.querySelectorAll('#loberdata .data-input').forEach(input => {
-                if (importedData[input.id]) {
-                    input.value = importedData[input.id];
-                }
-            });
-
-            // Trin 2: NYT - Udfyld zone-data fra arrays i filen
-            const zoneTypes = { hr: 'hr_zones', power: 'power_zones', pace: 'pace_zones' };
-            for (const prefix in zoneTypes) {
-                const arrayKey = zoneTypes[prefix];
-                // Tjek om .json-filen indeholder et array for denne zone-type
-                if (importedData[arrayKey] && Array.isArray(importedData[arrayKey])) {
-                    importedData[arrayKey].forEach((value, index) => {
-                        const input = document.getElementById(`${prefix}Zone${index + 1}`);
-                        if (input) {
-                            input.value = value || '';
-                        }
-                    });
-                }
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                populateFormWithProfileData(importedData);
+                alert('Profilen er indlæst. Tryk på "Gem Profil i Database" for at gemme ændringerne permanent.');
+            } catch (error) {
+                console.error("Fejl ved indlæsning af profilfil:", error);
+                alert("Ugyldig profilfil.");
             }
-            
-            initializeProfilePageCalculations();
-            alert('Profilen er indlæst. Tryk på "Gem Profil i Database" for at gemme ændringerne permanent.');
+        };
+        reader.readAsText(file);
+    });
 
-        } catch (error) {
-            console.error("Fejl ved indlæsning af profilfil:", error);
-            alert("Ugyldig profilfil. Vælg venligst en korrekt formateret .json fil.");
-        }
-    };
-    reader.readAsText(file);
-});
-
-    // --- INITIALISER ALLE MODULER OG SIDER ---
-    // Rækkefølgen her kan være vigtig
-    initializeCalendar(); // Kalender skal starte, da den henter data
-    loadProfileData(); // Hent profildata fra databasen
+    initializeCalendar();
+    loadProfileData();
     updateHomePageDashboard();
     initializePlanPage();
-    initializeProfilePageCalculations(); // Opsæt alder-beregner osv.
+    initializeProfilePageCalculations();
     updateHomepageStatus();
     initializeAnalysePage();
     initializeStravaConnection();
