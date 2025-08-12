@@ -13,26 +13,36 @@ async function loadProfileData() {
     try {
         const response = await fetch('/api/get-profile');
         if (!response.ok) {
-            if (response.status === 404 || response.status === 204) {
-                 console.log("Ingen profil fundet i databasen. Det er ok.");
-                 return; // Stopper funktionen, hvis der ikke er en profil
-            }
+            if (response.status === 404 || response.status === 204) return;
             throw new Error('Serverfejl ved hentning af profil');
         }
         
         const profileData = await response.json();
+        if (!profileData) return;
         
-        if (profileData) {
-            const allDataInputs = document.querySelectorAll('#loberdata .data-input');
-            allDataInputs.forEach(input => {
-                if (profileData[input.id]) {
-                    input.value = profileData[input.id];
-                }
-            });
-            // Opdater også dashboardet med det samme
-            personalizeDashboard(profileData.runnerName);
-            initializeProfilePageCalculations(); // Kald for at opdatere alder etc.
+        // Udfyld de "normale" data-felter
+        document.querySelectorAll('#loberdata .data-input').forEach(input => {
+            if (profileData[input.id]) {
+                input.value = profileData[input.id];
+            }
+        });
+
+        // NYT: Udfyld zone-data fra arrays
+        const zoneTypes = { hr: 'hr_zones', power: 'power_zones', pace: 'pace_zones' };
+        for (const prefix in zoneTypes) {
+            const arrayKey = zoneTypes[prefix];
+            if (profileData[arrayKey] && Array.isArray(profileData[arrayKey])) {
+                profileData[arrayKey].forEach((value, index) => {
+                    const input = document.getElementById(`${prefix}Zone${index + 1}`);
+                    if (input) {
+                        input.value = value || '';
+                    }
+                });
+            }
         }
+        
+        personalizeDashboard(profileData.runnerName);
+        initializeProfilePageCalculations();
     } catch (error) {
         console.error("Fejl ved indlæsning af profil:", error);
     }
@@ -117,38 +127,47 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- GEM PROFIL KNAP (DATABASE-DREVET) ---
     document.getElementById('saveProfileBtn')?.addEventListener('click', async () => {
-        const saveButton = document.getElementById('saveProfileBtn');
-        saveButton.textContent = "Gemmer...";
-        saveButton.disabled = true;
+    const saveButton = document.getElementById('saveProfileBtn');
+    saveButton.textContent = "Gemmer...";
+    saveButton.disabled = true;
 
-        const profileData = {};
-        const allDataInputs = document.querySelectorAll('#loberdata .data-input');
-        allDataInputs.forEach(input => {
-            if (input.value) { // Gem kun felter, der har en værdi
-                profileData[input.id] = input.value;
-            }
-        });
-
-        try {
-            const response = await fetch('/api/save-profile', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(profileData)
-            });
-            if (!response.ok) throw new Error("Serveren kunne ikke gemme profilen.");
-
-            saveButton.textContent = "Profil Gemt!";
-            personalizeDashboard(profileData.runnerName); // Opdater dashboard med det samme
-        } catch (error) {
-            console.error("Fejl ved at gemme profil:", error);
-            saveButton.textContent = "Fejl - Prøv Igen";
-        } finally {
-            setTimeout(() => {
-                saveButton.textContent = "Gem Profil";
-                saveButton.disabled = false;
-            }, 2000);
-        }
+    const profileData = {};
+    // Indsaml alle de "normale" data-felter
+    document.querySelectorAll('#loberdata .data-input').forEach(input => {
+        if (input.value) profileData[input.id] = input.value;
     });
+
+    // NYT: Indsaml zone-data og byg arrays
+    const zoneTypes = { hr: 'hr_zones', power: 'power_zones', pace: 'pace_zones' };
+    for (const prefix in zoneTypes) {
+        const arrayKey = zoneTypes[prefix];
+        profileData[arrayKey] = [];
+        for (let i = 1; i <= 5; i++) {
+            const input = document.getElementById(`${prefix}Zone${i}`);
+            if (input) {
+                profileData[arrayKey].push(input.value || null);
+            }
+        }
+    }
+
+    try {
+        const response = await fetch('/api/save-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(profileData)
+        });
+        if (!response.ok) throw new Error("Serveren kunne ikke gemme profilen.");
+        saveButton.textContent = "Profil Gemt!";
+    } catch (error) {
+        console.error("Fejl ved at gemme profil:", error);
+        saveButton.textContent = "Fejl - Prøv Igen";
+    } finally {
+        setTimeout(() => {
+            saveButton.textContent = "Gem Profil i Database";
+            saveButton.disabled = false;
+        }, 2000);
+    }
+});
 
 // 2. NYT: Eksporterer den aktuelle profil til en .json-fil
     document.getElementById('exportProfileBtn')?.addEventListener('click', () => {
