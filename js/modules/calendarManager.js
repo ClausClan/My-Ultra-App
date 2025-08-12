@@ -135,9 +135,9 @@ function renderWeeklyView() {
     }
 }
 
-function renderDataDisplay() {
-    const dataContent = document.getElementById('tab-content-data');
-    if (!dataContent) return;
+//function renderDataDisplay() {
+//    const dataContent = document.getElementById('tab-content-data');
+//    if (!dataContent) return;
 
 
 //    const dateKey = formatDateKey(selectedDate);
