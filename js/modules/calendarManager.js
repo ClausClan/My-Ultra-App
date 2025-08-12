@@ -140,11 +140,28 @@ function renderDataDisplay() {
     if (!dataContent) return;
 
 
-    const dateKey = formatDateKey(selectedDate);
+//    const dateKey = formatDateKey(selectedDate);
     // RETTET: Kigger nu KUN i allLogs
+//    const savedData = allLogs.find(log => log.date === dateKey) || {};
+
+// I renderDataDisplay() i calendarManager.js...
+
+function renderDataDisplay() {
+    const dataContent = document.getElementById('tab-content-data');
+    if (!dataContent) return;
+
+    const dateKey = formatDateKey(selectedDate);
     const savedData = allLogs.find(log => log.date === dateKey) || {};
     
-            debugger; // TILFØJ KUN DENNE ENE LINJE
+    // --- NYT DEBUGGING-PUNKT (ERSTATTER debugger;) ---
+    console.log(`--- RAPPORT FOR DATO: ${dateKey} ---`);
+    console.log("Hele 'allLogs' arrayet indeholder:", allLogs);
+    console.log("Objekt fundet for denne dato ('savedData'):", savedData);
+    console.log("------------------------------------");
+    // ----------------------------------------------------
+
+    // Byg HTML-formularen dynamisk...
+    // ... resten af funktionen fortsætter her ...
 
     // Byg HTML-formularen dynamisk... (denne del er lang, men logikken er den samme)
     // Sørger for at `value` hentes fra `savedData` objektet.
