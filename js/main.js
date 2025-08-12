@@ -4,6 +4,38 @@ import { initializePlanPage, getActivePlan } from './modules/planManager.js';
 import { initializeAnalysePage } from './modules/analyseManager.js';
 import { initializeStravaConnection } from './modules/stravaManager.js';
 
+// Funktion til at hente profildata fra databasen og udfylde formularen
+async function loadProfileData() {
+    try {
+        const response = await fetch('/api/get-profile');
+        if (!response.ok) {
+            // Hvis der ikke er en profil endnu, sker der ikke noget.
+            if (response.status === 404) return;
+            throw new Error('Kunne ikke hente profil');
+        }
+        const profileData = await response.json();
+        
+        if (profileData) {
+            // Find alle input-felter på Løberdata-siden
+            const allDataInputs = document.querySelectorAll('#loberdata .data-input');
+            allDataInputs.forEach(input => {
+                // Udfyld feltets værdi, hvis der findes en matchende nøgle i dataene
+                if (profileData[input.id]) {
+                    input.value = profileData[input.id];
+                }
+            });
+
+            // Særlige tilfælde som alder og profilbillede kan håndteres her
+            // (Denne del kan udbygges senere)
+        }
+    } catch (error) {
+        console.error("Fejl ved indlæsning af profil:", error);
+    }
+}
+
+
+
+
 // --- FUNKTION: Opdaterer dashboard med navn og billede ---
 function personalizeDashboard() {
     const name = localStorage.getItem('runnerName');
@@ -102,6 +134,7 @@ function updateHomepageStatus() {
 }
 
 
+
 document.addEventListener('DOMContentLoaded', function() {
     // --- NAVIGATION ---
     const navButtons = document.querySelectorAll('.nav-btn');
@@ -123,71 +156,44 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // --- LØBERDATA (RUNNER DATA) SAVING ---
-    const dataInputs = document.querySelectorAll('#loberdata .data-input');
-    dataInputs.forEach(input => {
-        const savedValue = localStorage.getItem(input.id);
-        if (savedValue) input.value = savedValue;
-        input.addEventListener('input', () => localStorage.setItem(input.id, input.value));
+
+    // Ny event listener for "Gem Profil"-knappen
+document.getElementById('saveProfileBtn')?.addEventListener('click', async () => {
+    const saveButton = document.getElementById('saveProfileBtn');
+    saveButton.textContent = "Gemmer...";
+    saveButton.disabled = true;
+
+    const profileData = {};
+    const allDataInputs = document.querySelectorAll('#loberdata .data-input');
+    allDataInputs.forEach(input => {
+        profileData[input.id] = input.value;
     });
-    
-    // --- PROFIL HÅNDTERING (GEM/INDLÆS) ---
-    const saveProfileBtn = document.getElementById('saveProfileBtn');
-    const loadProfileBtn = document.getElementById('loadProfileBtn');
-    const profileFileInput = document.getElementById('profileFileInput');
-    
-    saveProfileBtn?.addEventListener('click', () => {
-        const profileData = {};
-        const allDataInputs = document.querySelectorAll('#loberdata .data-input');
-        allDataInputs.forEach(input => {
-            profileData[input.id] = input.value;
+
+    try {
+        const response = await fetch('/api/save-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(profileData)
         });
-        const profilePictureData = localStorage.getItem('profilePicture');
-        if (profilePictureData) {
-            profileData['profilePicture'] = profilePictureData;
-        }
-        const dataStr = JSON.stringify(profileData, null, 2);
-        const dataBlob = new Blob([dataStr], {type: "application/json"});
-        const link = document.createElement('a');
-        link.download = 'brugerProfil.json';
-        link.href = URL.createObjectURL(dataBlob);
-        link.click();
-        URL.revokeObjectURL(link.href);
-    });
 
-    loadProfileBtn?.addEventListener('click', () => profileFileInput.click());
+        if (!response.ok) throw new Error("Serveren kunne ikke gemme profilen.");
 
-    profileFileInput?.addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const importedData = JSON.parse(e.target.result);
-                const allDataInputs = document.querySelectorAll('#loberdata .data-input');
-                allDataInputs.forEach(input => {
-                    if (importedData[input.id]) {
-                        input.value = importedData[input.id];
-                        localStorage.setItem(input.id, importedData[input.id]);
-                    }
-                });
-                if (importedData['profilePicture']) {
-                    const pictureData = importedData['profilePicture'];
-                    localStorage.setItem('profilePicture', pictureData);
-                    document.getElementById('profilePicturePreview').src = pictureData;
-                    document.getElementById('profilePicturePreview').style.display = 'block';
-                }
-                initializeProfilePage();
-                personalizeDashboard();
-            } catch (error) {
-                console.error("Fejl ved indlæsning af profil:", error);
-                alert("Ugyldig profilfil.");
-            }
-        };
-        reader.readAsText(file);
-    });
+        saveButton.textContent = "Profil Gemt!";
+        setTimeout(() => {
+            saveButton.textContent = "Gem Profil";
+            saveButton.disabled = false;
+        }, 2000);
+
+    } catch (error) {
+        console.error("Fejl ved at gemme profil:", error);
+        saveButton.textContent = "Fejl - Prøv Igen";
+        saveButton.disabled = false;
+    }
+});
 
     // --- INITIALIZE MODULES & PAGES ---
     initializeCalendar();
+    loadProfileData(); 
     updateHomePageDashboard();
     initializePlanPage();
     initializeProfilePage();
