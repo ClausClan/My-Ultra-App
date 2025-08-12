@@ -144,6 +144,8 @@ function renderDataDisplay() {
     // RETTET: Kigger nu KUN i allLogs
     const savedData = allLogs.find(log => log.date === dateKey) || {};
     
+            debugger; // TILFØJ KUN DENNE ENE LINJE
+
     // Byg HTML-formularen dynamisk... (denne del er lang, men logikken er den samme)
     // Sørger for at `value` hentes fra `savedData` objektet.
     let formHTML = `<p class="font-semibold mb-4 text-gray-700">Viser data for: ${selectedDate.toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long' })}</p>`;
@@ -225,8 +227,6 @@ export async function initializeCalendar() {
         const response = await fetch('/api/get-logs');
         if (!response.ok) throw new Error('Kunne ikke hente data');
         allLogs = await response.json();
-
-        debugger; // TILFØJ KUN DENNE ENE LINJE
 
         console.log(`Hentede ${allLogs.length} logs fra databasen.`);
     } catch (error) {
