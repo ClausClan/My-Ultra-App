@@ -1,70 +1,48 @@
+// main.js - FULDT RETTET VERSION (12. AUGUST 2025)
+
 import { initializeCalendar } from './modules/calendarManager.js';
 import { updateHomePageDashboard } from './modules/chartManager.js';
 import { initializePlanPage, getActivePlan } from './modules/planManager.js';
 import { initializeAnalysePage } from './modules/analyseManager.js';
 import { initializeStravaConnection } from './modules/stravaManager.js';
 
+// --- PROFIL-FUNKTIONER (DATABASE-DREVET) ---
+
 // Funktion til at hente profildata fra databasen og udfylde formularen
 async function loadProfileData() {
     try {
         const response = await fetch('/api/get-profile');
         if (!response.ok) {
-            // Hvis der ikke er en profil endnu, sker der ikke noget.
-            if (response.status === 404) return;
-            throw new Error('Kunne ikke hente profil');
+            if (response.status === 404 || response.status === 204) {
+                 console.log("Ingen profil fundet i databasen. Det er ok.");
+                 return; // Stopper funktionen, hvis der ikke er en profil
+            }
+            throw new Error('Serverfejl ved hentning af profil');
         }
+        
         const profileData = await response.json();
         
         if (profileData) {
-            // Find alle input-felter på Løberdata-siden
             const allDataInputs = document.querySelectorAll('#loberdata .data-input');
             allDataInputs.forEach(input => {
-                // Udfyld feltets værdi, hvis der findes en matchende nøgle i dataene
                 if (profileData[input.id]) {
                     input.value = profileData[input.id];
                 }
             });
-
-            // Særlige tilfælde som alder og profilbillede kan håndteres her
-            // (Denne del kan udbygges senere)
+            // Opdater også dashboardet med det samme
+            personalizeDashboard(profileData.runnerName);
+            initializeProfilePageCalculations(); // Kald for at opdatere alder etc.
         }
     } catch (error) {
         console.error("Fejl ved indlæsning af profil:", error);
     }
 }
 
-
-
-
-// --- FUNKTION: Opdaterer dashboard med navn og billede ---
-function personalizeDashboard() {
-    const name = localStorage.getItem('runnerName');
-    const pictureSrc = localStorage.getItem('profilePicture');
-
-    const nameEl = document.getElementById('dashboard-runner-name');
-    const thumbEl = document.getElementById('dashboard-thumbnail');
-
-    if (nameEl && name) {
-        nameEl.textContent = `Velkommen, ${name}`;
-    } else if (nameEl) {
-        nameEl.textContent = `Min Løberprofil`;
-    }
-
-    if (thumbEl && pictureSrc) {
-        thumbEl.src = pictureSrc;
-        thumbEl.style.display = 'block';
-    } else if (thumbEl) {
-        thumbEl.style.display = 'none';
-    }
-}
-
-// --- FUNKTION: Håndterer logik på Løberdata-siden ---
-function initializeProfilePage() {
+// Funktion til at håndtere alder og profilbillede (uden save/load)
+function initializeProfilePageCalculations() {
     const runnerDobInput = document.getElementById('runnerDob');
     const calculatedAgeEl = document.getElementById('calculatedAge');
-    const profilePicInput = document.getElementById('profilePictureInput');
-    const profilePicPreview = document.getElementById('profilePicturePreview');
-
+    
     const calculateAge = (dobString) => {
         if (!dobString) return '-';
         const birthDate = new Date(dobString);
@@ -77,66 +55,48 @@ function initializeProfilePage() {
         return age;
     };
     
-    profilePicInput?.addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const dataUrl = e.target.result;
-            localStorage.setItem('profilePicture', dataUrl);
-            profilePicPreview.src = dataUrl;
-            profilePicPreview.style.display = 'block';
-            personalizeDashboard();
-        };
-        reader.readAsDataURL(file);
-    });
-    
     runnerDobInput?.addEventListener('input', () => {
         calculatedAgeEl.textContent = calculateAge(runnerDobInput.value);
     });
-    
-    const savedDob = localStorage.getItem('runnerDob');
-    if (savedDob) {
-        runnerDobInput.value = savedDob;
-        calculatedAgeEl.textContent = calculateAge(savedDob);
-    }
 
-    const savedPic = localStorage.getItem('profilePicture');
-    if (savedPic) {
-        profilePicPreview.src = savedPic;
-        profilePicPreview.style.display = 'block';
-    } else {
-        profilePicPreview.style.display = 'none';
+    // Kør en gang ved start for at vise den alder, der er loadet fra databasen
+    if (runnerDobInput.value) {
+         calculatedAgeEl.textContent = calculateAge(runnerDobInput.value);
     }
 }
 
-// --- NY FUNKTION: Opdaterer Plan Status og Dagens Træning på forsiden ---
+// Opdaterer dashboard med navn
+function personalizeDashboard(name) {
+    const nameEl = document.getElementById('dashboard-runner-name');
+    if (nameEl && name) {
+        nameEl.textContent = `Velkommen, ${name}`;
+    } else if (nameEl) {
+        nameEl.textContent = `Min Løberprofil`;
+    }
+    // Profilbillede-logik kan tilføjes her senere, hvis det skal gemmes i databasen
+}
+
+// Opdaterer status på forsiden
 function updateHomepageStatus() {
     const planStatusText = document.getElementById('planStatusText');
     const todayTrainingText = document.getElementById('todayTrainingText');
-    const activePlan = getActivePlan(); // Henter planen via planManager
+    const activePlan = getActivePlan();
 
     if (activePlan && activePlan.length > 0) {
         planStatusText.textContent = `Aktiv plan er indlæst. God træning!`;
-        
         const today = new Date().toISOString().split('T')[0];
         const todaysTraining = activePlan.find(day => day.date === today);
-
-        if (todaysTraining) {
-            todayTrainingText.textContent = todaysTraining.plan;
-        } else {
-            todayTrainingText.textContent = 'Ingen træning planlagt i dag.';
-        }
+        todayTrainingText.textContent = todaysTraining ? todaysTraining.plan : 'Ingen træning planlagt i dag.';
     } else {
         planStatusText.textContent = 'Ingen aktiv plan. Importer en plan for at komme i gang.';
         todayTrainingText.textContent = 'Ingen træning planlagt i dag.';
     }
 }
 
-
-
+// --- APPENS "MOTOR" - STARTER NÅR SIDEN ER KLAR ---
 document.addEventListener('DOMContentLoaded', function() {
-    // --- NAVIGATION ---
+    
+    // --- NAVIGATION (VIGTIGT AT DENNE ER HER!) ---
     const navButtons = document.querySelectorAll('.nav-btn');
     const pages = document.querySelectorAll('.page');
     navButtons.forEach(button => {
@@ -149,56 +109,109 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (pageId === 'hjem') {
                 updateHomePageDashboard();
-                personalizeDashboard();
-                updateHomepageStatus(); // Kald den her også
+                updateHomepageStatus();
+                // Navnet på dashboardet bliver opdateret, når profilen er hentet
             }
         });
     });
 
-    // --- LØBERDATA (RUNNER DATA) SAVING ---
+    // --- GEM PROFIL KNAP (DATABASE-DREVET) ---
+    document.getElementById('saveProfileBtn')?.addEventListener('click', async () => {
+        const saveButton = document.getElementById('saveProfileBtn');
+        saveButton.textContent = "Gemmer...";
+        saveButton.disabled = true;
 
-    // Ny event listener for "Gem Profil"-knappen
-document.getElementById('saveProfileBtn')?.addEventListener('click', async () => {
-    const saveButton = document.getElementById('saveProfileBtn');
-    saveButton.textContent = "Gemmer...";
-    saveButton.disabled = true;
-
-    const profileData = {};
-    const allDataInputs = document.querySelectorAll('#loberdata .data-input');
-    allDataInputs.forEach(input => {
-        profileData[input.id] = input.value;
-    });
-
-    try {
-        const response = await fetch('/api/save-profile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(profileData)
+        const profileData = {};
+        const allDataInputs = document.querySelectorAll('#loberdata .data-input');
+        allDataInputs.forEach(input => {
+            if (input.value) { // Gem kun felter, der har en værdi
+                profileData[input.id] = input.value;
+            }
         });
 
-        if (!response.ok) throw new Error("Serveren kunne ikke gemme profilen.");
+        try {
+            const response = await fetch('/api/save-profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(profileData)
+            });
+            if (!response.ok) throw new Error("Serveren kunne ikke gemme profilen.");
 
-        saveButton.textContent = "Profil Gemt!";
-        setTimeout(() => {
-            saveButton.textContent = "Gem Profil";
-            saveButton.disabled = false;
-        }, 2000);
+            saveButton.textContent = "Profil Gemt!";
+            personalizeDashboard(profileData.runnerName); // Opdater dashboard med det samme
+        } catch (error) {
+            console.error("Fejl ved at gemme profil:", error);
+            saveButton.textContent = "Fejl - Prøv Igen";
+        } finally {
+            setTimeout(() => {
+                saveButton.textContent = "Gem Profil";
+                saveButton.disabled = false;
+            }, 2000);
+        }
+    });
 
-    } catch (error) {
-        console.error("Fejl ved at gemme profil:", error);
-        saveButton.textContent = "Fejl - Prøv Igen";
-        saveButton.disabled = false;
-    }
-});
+// 2. NYT: Eksporterer den aktuelle profil til en .json-fil
+    document.getElementById('exportProfileBtn')?.addEventListener('click', () => {
+        const profileData = {};
+        const allDataInputs = document.querySelectorAll('#loberdata .data-input');
+        allDataInputs.forEach(input => {
+            profileData[input.id] = input.value;
+        });
 
-    // --- INITIALIZE MODULES & PAGES ---
-    initializeCalendar();
-    loadProfileData(); 
+        const dataStr = JSON.stringify(profileData, null, 2);
+        const dataBlob = new Blob([dataStr], {type: "application/json"});
+        const link = document.createElement('a');
+        link.download = 'min_ultra_app_profil.json';
+        link.href = URL.createObjectURL(dataBlob);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+    });
+
+    // 3. NYT: Starter import-processen ved at åbne fil-vælgeren
+    const loadProfileBtn = document.getElementById('loadProfileBtn');
+    const profileFileInput = document.getElementById('profileFileInput');
+    loadProfileBtn?.addEventListener('click', () => profileFileInput.click());
+
+    // 4. NYT: Håndterer den valgte fil, når den er blevet importeret
+    profileFileInput?.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                
+                // Udfyld formularen med de importerede data
+                const allDataInputs = document.querySelectorAll('#loberdata .data-input');
+                allDataInputs.forEach(input => {
+                    if (importedData[input.id]) {
+                        input.value = importedData[input.id];
+                    }
+                });
+                
+                // Opdater UI (f.eks. beregn alder igen)
+                initializeProfilePageCalculations();
+                alert('Profilen er indlæst i formularen. Tryk på "Gem Profil i Database" for at gemme ændringerne permanent.');
+
+            } catch (error) {
+                console.error("Fejl ved indlæsning af profilfil:", error);
+                alert("Ugyldig profilfil. Vælg venligst en korrekt formateret .json fil.");
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    // --- INITIALISER ALLE MODULER OG SIDER ---
+    // Rækkefølgen her kan være vigtig
+    initializeCalendar(); // Kalender skal starte, da den henter data
+    loadProfileData(); // Hent profildata fra databasen
     updateHomePageDashboard();
     initializePlanPage();
-    initializeProfilePage();
-    personalizeDashboard();
-    updateHomepageStatus(); // Kald funktionen ved start
+    initializeProfilePageCalculations(); // Opsæt alder-beregner osv.
+    updateHomepageStatus();
     initializeAnalysePage();
     initializeStravaConnection();
 });
