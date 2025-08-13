@@ -1,14 +1,14 @@
-// main.js - ENDELIG VERSION  (13. AUGUST 2025)
+// main.js - FULD VERSION DER HENTER PLAN VED OPSTART (14. AUGUST 2025)
 
 import { initializeCalendar } from './modules/calendarManager.js';
 import { updateHomePageDashboard } from './modules/chartManager.js';
-import { initializePlanPage, getActivePlan } from './modules/planManager.js';
+import { initializePlanPage, loadActivePlan, getActivePlan } from './modules/planManager.js';
 import { initializeAnalysePage } from './modules/analyseManager.js';
 import { initializeStravaConnection } from './modules/stravaManager.js';
 
 // --- GLOBALE VARIABLER ---
 let supabaseClient = null;
-let userProfile = null; // Her gemmer vi den indlæste profil
+let userProfile = null;
 
 // --- HJÆLPEFUNKTIONER ---
 
@@ -59,8 +59,10 @@ function populateFormWithProfileData(profileData) {
     const profilePicPreview = document.getElementById('profilePicturePreview');
     const hiddenPicUrlInput = document.getElementById('profilePictureUrl');
     if (profileData.profilePicture) {
-        profilePicPreview.src = profileData.profilePicture;
-        profilePicPreview.style.display = 'block';
+        if(profilePicPreview) {
+            profilePicPreview.src = profileData.profilePicture;
+            profilePicPreview.style.display = 'block';
+        }
         if(hiddenPicUrlInput) hiddenPicUrlInput.value = profileData.profilePicture;
     } else {
         if(profilePicPreview) profilePicPreview.style.display = 'none';
@@ -86,13 +88,10 @@ async function loadProfileData() {
     try {
         const response = await fetch('/api/get-profile');
         if (!response.ok) {
-            if (response.status === 404 || response.status === 204) {
-                 console.log("Ingen profil fundet i databasen. Det er ok.");
-                 return;
-            }
+            if (response.status === 404 || response.status === 204) return;
             throw new Error('Serverfejl ved hentning af profil');
         }
-        userProfile = await response.json(); // Gem data i den globale variabel
+        userProfile = await response.json(); 
         
         populateFormWithProfileData(userProfile);
         personalizeDashboard(userProfile?.runnerName, userProfile?.profilePicture);
@@ -160,13 +159,8 @@ function updateHomepageStatus() {
     }
 }
 
-// --- APPENS "MOTOR" ---
-document.addEventListener('DOMContentLoaded', function() {
-    const hiddenInput = document.createElement('input');
-    hiddenInput.type = 'hidden';
-    hiddenInput.id = 'profilePictureUrl';
-    document.body.appendChild(hiddenInput);
-    
+// --- NY FUNKTION TIL EVENT LISTENERS ---
+function setupEventListeners() {
     const navButtons = document.querySelectorAll('.nav-btn');
     const pages = document.querySelectorAll('.page');
     navButtons.forEach(button => {
@@ -176,13 +170,12 @@ document.addEventListener('DOMContentLoaded', function() {
             button.classList.add('active');
             document.getElementById(button.dataset.page).classList.add('active');
             
-            // NYT: Hver gang vi går til "Hjem", opdateres dashboardet med de seneste data
             if (button.dataset.page === 'hjem' && userProfile) {
                 personalizeDashboard(userProfile.runnerName, userProfile.profilePicture);
             }
         });
     });
-
+    
     const profilePicInput = document.getElementById('profilePictureInput');
     profilePicInput?.addEventListener('change', async (event) => {
         const file = event.target.files[0];
@@ -216,9 +209,6 @@ document.addEventListener('DOMContentLoaded', function() {
         saveButton.textContent = "Gemmer...";
         saveButton.disabled = true;
         const profileData = collectProfileDataFromForm();
-
-         console.log("Data der sendes til serveren:", profileData);
-         
         try {
             const response = await fetch('/api/save-profile', {
                 method: 'POST',
@@ -227,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             if (!response.ok) throw new Error("Serveren kunne ikke gemme profilen.");
             
-            userProfile = profileData; // OPDATER den globale variabel
+            userProfile = profileData;
             personalizeDashboard(userProfile.runnerName, userProfile.profilePicture);
             saveButton.textContent = "Profil Gemt!";
         } catch (error) {
@@ -274,13 +264,29 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         reader.readAsText(file);
     });
+}
 
+
+// --- APPENS "MOTOR" (Nu asynkron) ---
+async function main() {
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.id = 'profilePictureUrl';
+    document.body.appendChild(hiddenInput);
+
+    // Trin 1: Hent al kritisk data fra databasen FØRST
+    await loadActivePlan();
+    await loadProfileData();
+
+    // Trin 2: Når data er hentet, initialiser alle dele af appen
+    setupEventListeners();
     initializeCalendar();
-    loadProfileData();
     updateHomePageDashboard();
     initializePlanPage();
     initializeProfilePageCalculations();
     updateHomepageStatus();
     initializeAnalysePage();
     initializeStravaConnection();
-});
+}
+
+document.addEventListener('DOMContentLoaded', main);

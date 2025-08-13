@@ -1,9 +1,10 @@
-// planManager.js - FULD DATABASE-DREVET VERSION
+// planManager.js - FULD DATABASE-DREVET VERSION INKL. VISNING
 
 let activePlan = [];
 let activePlanName = '';
 
-// Funktion til at gemme den aktive plan i databasen
+// --- DATAHÅNDTERING (Kommunikerer med backenden) ---
+
 async function saveActivePlan(planName, planData) {
     try {
         const response = await fetch('/api/save-plan', {
@@ -13,7 +14,7 @@ async function saveActivePlan(planName, planData) {
         });
         if (!response.ok) throw new Error('Kunne ikke gemme planen');
         console.log("Plan gemt i databasen.");
-        activePlan = planData; // Opdater den lokale kopi
+        activePlan = planData;
         activePlanName = planName;
     } catch (error) {
         console.error("Fejl ved at gemme plan:", error);
@@ -21,17 +22,17 @@ async function saveActivePlan(planName, planData) {
     }
 }
 
-// Funktion til at hente den aktive plan fra databasen
-async function loadActivePlan() {
+// NY: Eksporteres så main.js kan kalde den ved opstart
+export async function loadActivePlan() {
     try {
         const response = await fetch('/api/get-plan');
-        if (!response.ok) {
-            if (response.status === 404 || response.status === 204) {
-                 console.log("Ingen aktiv plan fundet i databasen.");
-                 return;
-            }
-            throw new Error('Kunne ikke hente plan');
+        if (response.status === 204 || response.status === 404) {
+            console.log("Ingen aktiv plan fundet i databasen.");
+            activePlan = [];
+            activePlanName = '';
+            return;
         }
+        if (!response.ok) throw new Error('Kunne ikke hente plan');
         const planObject = await response.json();
         if (planObject && planObject.plan_data) {
             activePlan = planObject.plan_data;
@@ -43,37 +44,55 @@ async function loadActivePlan() {
     }
 }
 
-// Initialiserer Plan-siden
+// --- VISNING AF PLAN-SIDEN ---
+
+// Denne funktion tegner alt på selve Plan-siden
+function renderPlanPage() {
+    const titleElement = document.getElementById('weekly-overview-title');
+    const detailsView = document.getElementById('plan-details-view');
+    // Her kan du tilføje logik til at tegne grafer, f.eks. planTimelineChart
+
+    if (activePlan && activePlan.length > 0) {
+        if(titleElement) titleElement.textContent = `Aktiv plan: ${activePlanName}`;
+        
+        let detailsHtml = '';
+        activePlan.forEach(day => {
+            detailsHtml += `<div class="day-row"><strong>${day.date} (${day.day}):</strong> <span>${day.plan}</span></div>`;
+        });
+        if(detailsView) detailsView.innerHTML = detailsHtml;
+
+    } else {
+        if(titleElement) titleElement.textContent = 'Ingen aktiv plan';
+        if(detailsView) detailsView.innerHTML = '<p class="text-center text-gray-500">Importer en plan for at starte.</p>';
+    }
+}
+
+
+// --- INITIALISERING ---
+
 export function initializePlanPage() {
     const triggerButton = document.getElementById('trigger-plan-import-btn');
-    const fileInput = document.getElementById('plan-file-input'); // Hedder 'plan-file-input' i HTML
+    const fileInput = document.getElementById('plan-file-input');
+    
+    triggerButton?.addEventListener('click', () => fileInput?.click());
 
-    // Lyt efter klik på den SYNLIGE knap
-    triggerButton?.addEventListener('click', () => {
-        fileInput?.click(); // "Klik" på det usynlige input-felt for at åbne fil-vælgeren
-    });
-
-    // Lyt efter at en fil er blevet valgt i fil-vælgeren
     fileInput?.addEventListener('change', (event) => {
         const file = event.target.files[0];
         if (!file) return;
-
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
                 const planData = JSON.parse(e.target.result);
                 await saveActivePlan(file.name, planData);
-                alert('Træningsplanen blev importeret og gemt i databasen. Siden genindlæses.');
+                alert('Træningsplanen blev importeret og gemt. Siden genindlæses.');
                 location.reload();
             } catch (error) {
-                console.error("Fejl ved import af plan:", error);
                 alert("Ugyldig planfil.");
             }
         };
         reader.readAsText(file);
     });
 
-    // 'reset-plan-btn' logikken forbliver den samme
     document.getElementById('reset-plan-btn')?.addEventListener('click', async () => {
         if (confirm("Er du sikker på, at du vil slette den aktive plan?")) {
             await saveActivePlan('Ingen plan', []);
@@ -81,13 +100,11 @@ export function initializePlanPage() {
         }
     });
 
-    // Kald loadActivePlan ved initialisering
-    loadActivePlan().then(() => {
-        // ... (din UI-opdateringskode for Plan-siden) ...
-    });
+    // Når siden indlæses, tegn den plan, der allerede er hentet
+    renderPlanPage();
 }
 
-// Giver andre moduler adgang til den aktive plan
+// Giver andre moduler adgang til den hentede plan
 export function getActivePlan() {
     return activePlan;
 }
