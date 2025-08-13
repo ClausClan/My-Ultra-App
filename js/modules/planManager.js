@@ -45,35 +45,45 @@ async function loadActivePlan() {
 
 // Initialiserer Plan-siden
 export function initializePlanPage() {
-    document.getElementById('plan-import-btn')?.addEventListener('change', (event) => {
+    const triggerButton = document.getElementById('trigger-plan-import-btn');
+    const fileInput = document.getElementById('plan-file-input'); // Hedder 'plan-file-input' i HTML
+
+    // Lyt efter klik på den SYNLIGE knap
+    triggerButton?.addEventListener('click', () => {
+        fileInput?.click(); // "Klik" på det usynlige input-felt for at åbne fil-vælgeren
+    });
+
+    // Lyt efter at en fil er blevet valgt i fil-vælgeren
+    fileInput?.addEventListener('change', (event) => {
         const file = event.target.files[0];
         if (!file) return;
+
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
                 const planData = JSON.parse(e.target.result);
-                // Efter import, gem planen direkte i databasen
                 await saveActivePlan(file.name, planData);
-                location.reload(); // Genindlæs for at vise den nye plan overalt
+                alert('Træningsplanen blev importeret og gemt i databasen. Siden genindlæses.');
+                location.reload();
             } catch (error) {
+                console.error("Fejl ved import af plan:", error);
                 alert("Ugyldig planfil.");
             }
         };
         reader.readAsText(file);
     });
 
+    // 'reset-plan-btn' logikken forbliver den samme
     document.getElementById('reset-plan-btn')?.addEventListener('click', async () => {
         if (confirm("Er du sikker på, at du vil slette den aktive plan?")) {
-            // Slet planen ved at gemme en tom plan
             await saveActivePlan('Ingen plan', []);
             location.reload();
         }
     });
 
-    // Kald loadActivePlan ved initialisering, så planen er klar
+    // Kald loadActivePlan ved initialisering
     loadActivePlan().then(() => {
-        // Opdater UI på Plan-siden (denne del kan udbygges)
-        // f.eks. visning af grafer og ugeoversigt...
+        // ... (din UI-opdateringskode for Plan-siden) ...
     });
 }
 
