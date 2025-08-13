@@ -188,6 +188,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // --- LOGIK FOR PROFILBILLEDE-UPLOAD ---
         const profilePicInput = document.getElementById('profilePictureInput');
         console.log("Leder efter #profilePictureInput:", profilePicInput); // VIGTIG LINJE
+        console.log("Resultat af getElementById('profilePictureInput'):", profilePicInput); 
+
+        const profilePicPreview = document.getElementById('profilePicturePreview');
 
         // Vi opretter en "doven" Supabase-klient. Den bliver først initialiseret, når vi skal bruge den.
         let supabaseClient = null;
