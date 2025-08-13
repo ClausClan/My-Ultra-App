@@ -141,91 +141,61 @@ function renderWeeklyView() {
 }
 
 function renderDataDisplay() {
- 
-        // --- VIS DAGENS TRÆNINGSPLAN ---
-    const planContainer = document.createElement('div');
-    const todaysPlan = activePlan.find(p => p.date === dateKey);
-    if (todaysPlan) {
-        planContainer.className = 'p-4 bg-blue-50 border border-blue-200 rounded-lg mb-6';
-        planContainer.innerHTML = `
-            <h4 class="font-bold text-lg mb-2 text-blue-700">Dagens Plan</h4>
-            <p>${todaysPlan.plan}</p>
-        `;
-        dataContent.prepend(planContainer); // Indsæt planen øverst
-    }
-    
     const dataContent = document.getElementById('tab-content-data');
     const stravaActionsContainer = document.getElementById('strava-actions-container');
     const stravaDetailsDisplay = document.getElementById('strava-details-display');
     if (!dataContent || !stravaActionsContainer || !stravaDetailsDisplay) return;
 
+    // Definer dateKey og find data som det FØRSTE
     const dateKey = formatDateKey(selectedDate);
     const savedData = allLogs.find(log => log.date === dateKey) || {};
 
-    let formHTML = `<p class="font-semibold mb-4 text-gray-700">Viser data for: ${selectedDate.toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long' })}</p>`;
-    const inputClasses = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500";
-    const labelClasses = "block text-sm font-medium text-gray-700";
-    const dataFields = {
-        morning: [{ id: 'hrv', label: 'HRV' }, { id: 'rhr', label: 'Hvilepuls' }, { id: 'sleep_quality', label: 'Søvn (1-5)' }],
-        training: [{ id: 'pte', label: 'PTE' }, { id: 'vo2max', label: 'VO2max' }, { id: 'avg_watt', label: 'Gns. Watt' }, { id: 'avg_hr', label: 'Gns. Puls' }],
-        general: [{ id: 'notes', label: 'Noter', type: 'textarea' }]
-    };
-
-    formHTML += `<h4 class="font-bold text-lg mt-4 mb-2">Morgen Status</h4><div class="grid grid-cols-2 md:grid-cols-4 gap-4">`;
-    dataFields.morning.forEach(f => {
-        formHTML += `<div><label for="${f.id}-${dateKey}" class="${labelClasses}">${f.label}</label><input type="number" id="${f.id}-${dateKey}" value="${savedData[f.id] || ''}" class="${inputClasses}"></div>`;
-    });
-    formHTML += `</div>`;
-
-    formHTML += `<h4 class="font-bold text-lg mt-6 mb-2">Træningsdata</h4><div class="grid grid-cols-2 md:grid-cols-4 gap-4">`;
-    dataFields.training.forEach(f => {
-        formHTML += `<div><label for="${f.id}-${dateKey}" class="${labelClasses}">${f.label}</label><input type="number" step="0.1" id="${f.id}-${dateKey}" value="${savedData[f.id] || ''}" class="${inputClasses}"></div>`;
-    });
-    formHTML += `</div>`;
-    
-    if (savedData.stravaActivityId) {
-        formHTML += `<div class="p-4 bg-orange-50 border border-orange-200 rounded-lg my-6">`;
-        formHTML += `<h4 class="font-bold text-lg mb-2 text-orange-700">Strava Aktivitet</h4>`;
-        formHTML += `<div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">`;
-        if (savedData.distance) formHTML += `<div><strong class="${labelClasses}">Distance</strong><p>${savedData.distance} km</p></div>`;
-        if (savedData.duration) formHTML += `<div><strong class="${labelClasses}">Tid</strong><p>${savedData.duration} min</p></div>`;
-        if (savedData.elevation) formHTML += `<div><strong class="${labelClasses}">Højdemeter</strong><p>${savedData.elevation} m</p></div>`;
-        formHTML += `</div></div>`;
-    }
-
-    formHTML += `<h4 class="font-bold text-lg mt-6 mb-2">Generelt</h4>`;
-    formHTML += `<div><label for="notes-${dateKey}" class="${labelClasses}">${dataFields.general[0].label}</label><textarea id="notes-${dateKey}" rows="4" class="${inputClasses}">${savedData.notes || ''}</textarea></div>`;
-
-    dataContent.innerHTML = formHTML;
-    dataContent.querySelectorAll('input, textarea').forEach(input => {
-        input.addEventListener('input', () => saveDataForDay(selectedDate));
-    });
-
+    // Tøm de dynamiske containere
+    dataContent.innerHTML = '';
     stravaActionsContainer.innerHTML = '';
     stravaDetailsDisplay.innerHTML = '';
     stravaDetailsDisplay.style.display = 'none';
 
-    if (savedData.stravaActivityId) {
-        stravaActionsContainer.innerHTML = `
-            <button id="show-strava-details-btn" class="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors">Vis Detaljer fra Strava</button>
-            <a href="https://www.strava.com/activities/${savedData.stravaActivityId}" target="_blank" class="ml-4 text-sm font-semibold text-orange-600 hover:text-orange-800 transition-colors">Se aktivitet på Strava</a>
+    // --- VIS DAGENS TRÆNINGSPLAN (hvis den findes) ---
+    const activePlan = getActivePlan(); // Sørg for at hente den nyeste plan-tilstand
+    const todaysPlan = activePlan.find(p => p.date === dateKey);
+    if (todaysPlan && todaysPlan.plan) {
+        const planContainer = document.createElement('div');
+        planContainer.className = 'p-4 bg-blue-50 border border-blue-200 rounded-lg mb-6';
+        planContainer.innerHTML = `
+            <h4 class="font-bold text-lg mb-2 text-blue-700">Dagens Plan</h4>
+            <p>${todaysPlan.plan}</p>
         `;
-        document.getElementById('show-strava-details-btn').addEventListener('click', async () => {
-            const btn = document.getElementById('show-strava-details-btn');
-            btn.textContent = 'Henter...';
-            btn.disabled = true;
-            try {
-                const activityDetails = await fetchActivityDetails(savedData.stravaActivityId);
-                stravaDetailsDisplay.innerHTML = `<h4 class="font-bold mb-2">Rå data fra Strava</h4><pre class="bg-white p-2 rounded overflow-auto text-xs"><code>${JSON.stringify(activityDetails, null, 2)}</code></pre>`;
-                stravaDetailsDisplay.style.display = 'block';
-            } catch (error) {
-                stravaDetailsDisplay.innerHTML = `<p class="text-red-500">Kunne ikke hente detaljer: ${error.message}</p>`;
-                stravaDetailsDisplay.style.display = 'block';
-            } finally {
-                btn.textContent = 'Vis Detaljer fra Strava';
-                btn.disabled = false;
-            }
-        });
+        dataContent.appendChild(planContainer);
+    }
+    
+    // --- BYG DEN MANUELLE INPUT-FORMULAR ---
+    const formContainer = document.createElement('div');
+    let formHTML = `<p class="font-semibold mb-4 text-gray-700">Viser data for: ${selectedDate.toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long' })}</p>`;
+    const inputClasses = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500";
+    const labelClasses = "block text-sm font-medium text-gray-700";
+
+    const dataFields = { /* ... (uændret) ... */ };
+    
+    formHTML += `<h4 class="font-bold text-lg mt-4 mb-2">Morgen Status</h4><div class="grid grid-cols-2 md:grid-cols-4 gap-4">...</div>`;
+    formHTML += `<h4 class="font-bold text-lg mt-6 mb-2">Træningsdata</h4><div class="grid grid-cols-2 md:grid-cols-4 gap-4">...</div>`;
+    formHTML += `<h4 class="font-bold text-lg mt-6 mb-2">Generelt</h4><div>...</div>`;
+    
+    formContainer.innerHTML = formHTML; // Genskab den fulde formHTML her som før
+    dataContent.appendChild(formContainer);
+    
+    // Udfyld værdier og tilføj listeners
+    dataContent.querySelectorAll('input, textarea').forEach(input => {
+        const fieldName = input.id.split('-')[0];
+        if(savedData[fieldName]) {
+            input.value = savedData[fieldName];
+        }
+        input.addEventListener('input', () => saveDataForDay(selectedDate));
+    });
+
+    // --- HÅNDTER STRAVA-KNAPPER ---
+    if (savedData.stravaActivityId) {
+        // ... (din eksisterende kode til at vise og håndtere Strava-knapper) ...
     }
 }
 
