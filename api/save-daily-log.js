@@ -26,6 +26,7 @@ export default async function handler(req, res) {
     // '.insert()' tager et objekt (eller et array af objekter)
     const { data, error } = await supabase
       .from('daily_logs')
+      .upsert(logData, { onConflict: 'date' }) // BRUG UPSERT I STEDET
       .insert([
         {
           date: logData.date,
