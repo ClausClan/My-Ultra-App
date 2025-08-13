@@ -83,8 +83,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
     justify-content: center; /* Centrerer knapperne i den tilgængelige plads */
 }
 
-/*.strava-indicator {
-.log-indicator.strava {
+.strava-indicator {
     position: absolute;
     top: 4px;
     right: 4px;
@@ -93,7 +92,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
     background-color: #fc4c02; /* Strava Orange */
     /*border-radius: 50%;
     border: 1px solid white;
-}/*
+}
 
 /* Styling for Strava-detaljer listen */
 #strava-details-container ul {
