@@ -108,7 +108,9 @@ async function redirectToStrava() {
     const stravaClientId = config.clientId;
 
     // 2. Byg URL'en med den modtagne nøgle
-    const redirectUri = window.location.origin;
+    // Erstat URL'en med din egen faste produktions-URL fra Vercel
+    const redirectUri = 'https://my-ultra-app.vercel.app'; 
+    
     const scope = 'read,activity:read_all';
     const authUrl = `https://www.strava.com/oauth/authorize?client_id=${stravaClientId}&response_type=code&redirect_uri=${redirectUri}&approval_prompt=force&scope=${scope}`;
 
