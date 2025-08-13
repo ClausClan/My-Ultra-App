@@ -292,6 +292,8 @@ export async function initializeCalendar() {
 
             syncBtn.textContent = `Fandt ${newActivities.length} nye. Forbereder...`;
             const logsToCreate = newActivities.map(activity => {
+                console.log("Rå aktivitet-data modtaget fra Strava:", activity);
+                
                 const dateKey = activity.start_date_local.split('T')[0];
                 return {
                     date: dateKey,
