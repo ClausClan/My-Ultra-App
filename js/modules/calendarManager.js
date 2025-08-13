@@ -155,7 +155,7 @@ function renderDataDisplay() {
     const dateKey = formatDateKey(selectedDate);
     const savedData = allLogs.find(log => log.date === dateKey) || {};
 
-    // --- TRIN 1: BYG DEN MANUELLE INPUT-FORMULAR (DEN MANGLENDE DEL) ---
+    // --- TRIN 1: BYG DEN MANUELLE INPUT-FORMULAR ---
     let formHTML = `<p class="font-semibold mb-4 text-gray-700">Viser data for: ${selectedDate.toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long' })}</p>`;
     const inputClasses = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500";
     const labelClasses = "block text-sm font-medium text-gray-700";
@@ -165,7 +165,19 @@ function renderDataDisplay() {
         training: [{ id: 'pte', label: 'PTE' }, { id: 'vo2max', label: 'VO2max' }, { id: 'avg_watt', label: 'Gns. Watt' }, { id: 'avg_hr', label: 'Gns. Puls' }],
         general: [{ id: 'notes', label: 'Noter', type: 'textarea' }]
     };
+    
+    // --- TRIN 2: NYT - VIS STRAVA DATA FØRST, HVIS DE FINDES ---
+    if (savedData.stravaActivityId) {
+        formHTML += `<div class="p-4 bg-orange-50 border border-orange-200 rounded-lg mb-6">`;
+        formHTML += `<h4 class="font-bold text-lg mb-2 text-orange-700">Strava Aktivitet</h4>`;
+        formHTML += `<div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">`;
+        if (savedData.distance) formHTML += `<div><strong class="${labelClasses}">Distance</strong><p>${savedData.distance} km</p></div>`;
+        if (savedData.duration) formHTML += `<div><strong class="${labelClasses}">Tid</strong><p>${savedData.duration} min</p></div>`;
+        if (savedData.elevation) formHTML += `<div><strong class="${labelClasses}">Højdemeter</strong><p>${savedData.elevation} m</p></div>`;
+        formHTML += `</div></div>`;
+    }
 
+    // Byg resten af formularen
     formHTML += `<h4 class="font-bold text-lg mt-4 mb-2">Morgen Status</h4><div class="grid grid-cols-2 md:grid-cols-4 gap-4">`;
     dataFields.morning.forEach(f => {
         formHTML += `<div><label for="${f.id}-${dateKey}" class="${labelClasses}">${f.label}</label><input type="number" id="${f.id}-${dateKey}" value="${savedData[f.id] || ''}" class="${inputClasses}"></div>`;
@@ -183,36 +195,29 @@ function renderDataDisplay() {
 
     dataContent.innerHTML = formHTML;
 
-    // Tilføj listeners til de nye input-felter
     dataContent.querySelectorAll('input, textarea').forEach(input => {
         input.addEventListener('input', () => saveDataForDay(selectedDate));
     });
 
-
-    // --- TRIN 2: HÅNDTER DE NYE STRAVA-KNAPPER ---
-    stravaActionsContainer.innerHTML = ''; // Ryd containeren
+    // --- TRIN 3: HÅNDTER STRAVA-KNAPPER ---
+    stravaActionsContainer.innerHTML = '';
     stravaDetailsDisplay.innerHTML = '';
     stravaDetailsDisplay.style.display = 'none';
 
     if (savedData.stravaActivityId) {
-        // Hvis dagen har en Strava-aktivitet, vis knapperne
         stravaActionsContainer.innerHTML = `
             <button id="show-strava-details-btn" class="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors">Vis Detaljer fra Strava</button>
             <a href="https://www.strava.com/activities/${savedData.stravaActivityId}" target="_blank" class="ml-4 text-sm font-semibold text-orange-600 hover:text-orange-800 transition-colors">Se aktivitet på Strava</a>
         `;
 
-        // Tilføj en listener til "Vis Detaljer"-knappen
         document.getElementById('show-strava-details-btn').addEventListener('click', async () => {
             const btn = document.getElementById('show-strava-details-btn');
             btn.textContent = 'Henter...';
             btn.disabled = true;
-
             try {
                 const activityDetails = await fetchActivityDetails(savedData.stravaActivityId);
-                
                 stravaDetailsDisplay.innerHTML = `<h4 class="font-bold mb-2">Rå data fra Strava</h4><pre class="bg-white p-2 rounded overflow-auto text-xs"><code>${JSON.stringify(activityDetails, null, 2)}</code></pre>`;
                 stravaDetailsDisplay.style.display = 'block';
-
             } catch (error) {
                 stravaDetailsDisplay.innerHTML = `<p class="text-red-500">Kunne ikke hente detaljer: ${error.message}</p>`;
                 stravaDetailsDisplay.style.display = 'block';
