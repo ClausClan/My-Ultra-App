@@ -148,56 +148,62 @@ function renderWeeklyView() {
 
 function renderDataDisplay() {
     const dataContent = document.getElementById('tab-content-data');
-    if (!dataContent) return;
+    const stravaActionsContainer = document.getElementById('strava-actions-container');
+    const stravaDetailsDisplay = document.getElementById('strava-details-display');
+    if (!dataContent || !stravaActionsContainer || !stravaDetailsDisplay) return;
 
     const dateKey = formatDateKey(selectedDate);
     const savedData = allLogs.find(log => log.date === dateKey) || {};
-    
-    // --- NYT DEBUGGING-PUNKT (ERSTATTER debugger;) ---
-    console.log(`--- RAPPORT FOR DATO: ${dateKey} ---`);
-    console.log("Hele 'allLogs' arrayet indeholder:", allLogs);
-    console.log("Objekt fundet for denne dato ('savedData'):", savedData);
-    console.log("------------------------------------");
-    // ----------------------------------------------------
 
-    // Byg HTML-formularen dynamisk...
-    // ... resten af funktionen fortsætter her ...
-
-    // Byg HTML-formularen dynamisk... (denne del er lang, men logikken er den samme)
-    // Sørger for at `value` hentes fra `savedData` objektet.
+    // Byg HTML-formularen dynamisk (som før)
+    // ... (al din eksisterende kode til at bygge formHTML) ...
     let formHTML = `<p class="font-semibold mb-4 text-gray-700">Viser data for: ${selectedDate.toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long' })}</p>`;
-    const inputClasses = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500";
-    const labelClasses = "block text-sm font-medium text-gray-700";
-
-    const dataFields = {
-        morning: [{ id: 'hrv', label: 'HRV' }, { id: 'rhr', label: 'Hvilepuls' }, { id: 'sleep_quality', label: 'Søvn (1-5)' }],
-        training: [{ id: 'pte', label: 'PTE' }, { id: 'vo2max', label: 'VO2max' }, { id: 'avg_watt', label: 'Gns. Watt' }, { id: 'avg_hr', label: 'Gns. Puls' }],
-        general: [{ id: 'notes', label: 'Noter', type: 'textarea' }]
-    };
-
-    formHTML += `<h4 class="font-bold text-lg mt-4 mb-2">Morgen Status</h4><div class="grid grid-cols-2 md:grid-cols-4 gap-4">`;
-    dataFields.morning.forEach(f => {
-        formHTML += `<div><label for="${f.id}-${dateKey}" class="${labelClasses}">${f.label}</label><input type="number" id="${f.id}-${dateKey}" value="${savedData[f.id] || ''}" class="${inputClasses}"></div>`;
-    });
-    formHTML += `</div>`;
-
-    formHTML += `<h4 class="font-bold text-lg mt-6 mb-2">Træningsdata</h4><div class="grid grid-cols-2 md:grid-cols-4 gap-4">`;
-    dataFields.training.forEach(f => {
-        formHTML += `<div><label for="${f.id}-${dateKey}" class="${labelClasses}">${f.label}</label><input type="number" step="0.1" id="${f.id}-${dateKey}" value="${savedData[f.id] || ''}" class="${inputClasses}"></div>`;
-    });
-    formHTML += `</div>`;
-
-    formHTML += `<h4 class="font-bold text-lg mt-6 mb-2">Generelt</h4>`;
-    formHTML += `<div><label for="notes-${dateKey}" class="${labelClasses}">${dataFields.general[0].label}</label><textarea id="notes-${dateKey}" rows="4" class="${inputClasses}">${savedData.notes || ''}</textarea></div>`;
-
+    // ... resten af din formHTML-opbygning ...
     dataContent.innerHTML = formHTML;
 
-
-    
-    // Tilføj listeners til de nye input-felter
+    // Tilføj listeners til input-felterne (som før)
     dataContent.querySelectorAll('input, textarea').forEach(input => {
         input.addEventListener('input', () => saveDataForDay(selectedDate));
     });
+
+
+    // --- NY LOGIK TIL STRAVA-KNAPPER ---
+    stravaActionsContainer.innerHTML = ''; // Ryd containeren
+    stravaDetailsDisplay.innerHTML = ''; // Ryd detalje-visningen
+    stravaDetailsDisplay.style.display = 'none';
+
+    if (savedData.stravaActivityId) {
+        // Hvis dagen har en Strava-aktivitet, vis knapperne
+        stravaActionsContainer.innerHTML = `
+            <button id="show-strava-details-btn" class="btn btn-secondary">Vis Detaljer fra Strava</button>
+            <a href="https://www.strava.com/activities/${savedData.stravaActivityId}" target="_blank" class="btn btn-strava">Se på Strava</a>
+        `;
+
+        // Tilføj en listener til den nye "Vis Detaljer"-knap
+        document.getElementById('show-strava-details-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('show-strava-details-btn');
+            btn.textContent = 'Henter...';
+            btn.disabled = true;
+
+            try {
+                const activityDetails = await fetchActivityDetails(savedData.stravaActivityId);
+
+                // Vis de hentede detaljer
+                stravaDetailsDisplay.innerHTML = `
+                    <h4 class="font-bold mb-2">Detaljer fra Strava</h4>
+                    <pre class="bg-white p-2 rounded overflow-auto"><code>${JSON.stringify(activityDetails, null, 2)}</code></pre>
+                `;
+                stravaDetailsDisplay.style.display = 'block';
+
+            } catch (error) {
+                stravaDetailsDisplay.innerHTML = `<p class="text-red-500">Kunne ikke hente detaljer: ${error.message}</p>`;
+                stravaDetailsDisplay.style.display = 'block';
+            } finally {
+                btn.textContent = 'Vis Detaljer fra Strava';
+                btn.disabled = false;
+            }
+        });
+    }
 }
 
 // --- DATAHÅNDTERING (GEMMER NU KUN TIL DATABASEN) ---
@@ -238,7 +244,7 @@ async function saveDataForDay(date) {
     }
 }
 
-// --- INITIALISERING OG EVENT LISTENERS ---
+// --- INITIALISERING OG EVENT LISTENERS ---V
 export async function initializeCalendar() {
     try {
     const response = await fetch('/api/get-logs');
