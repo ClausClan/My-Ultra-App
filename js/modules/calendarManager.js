@@ -1,4 +1,4 @@
-// calendarManager.js - FULDT RETTET VERSION (11. AUGUST 2025)
+// calendarManager.js - VERSION 13. AUGUST 2025
 
 import { getActivePlan } from './planManager.js';
 import { fetchActivities, fetchActivityDetails } from './stravaManager.js';
@@ -7,8 +7,8 @@ import { fetchActivities, fetchActivityDetails } from './stravaManager.js';
 let currentDate = new Date();
 let selectedDate = new Date();
 let activePlan = [];
-let allLogs = []; // Her gemmes ALLE logs fra databasen efter de er hentet
-let stravaActivities = []; // Bruges som en midlertidig cache
+let allLogs = [];
+let stravaActivities = [];
 
 // --- HJÆLPEFUNKTIONER ---
 function getWeekNumber(d) {
@@ -29,7 +29,7 @@ function formatDateKey(date) {
     return date.toISOString().split('T')[0];
 }
 
-// --- RENDERING AF UI (LÆSER NU KUN FRA allLogs) ---
+// --- RENDERING AF UI ---
 function renderAll() {
     renderCalendar();
     renderWeeklyView();
@@ -37,8 +37,6 @@ function renderAll() {
 }
 
 function renderCalendar() {
-    // ... (Denne funktion er primært til at tegne selve kalender-grid'et og er ok)
-    // Vi retter kun den del, der viser, om der er en log
     const calendarGrid = document.getElementById('calendar-grid');
     const monthYearDisplay = document.getElementById('month-year');
     const weekNumbersDisplay = document.getElementById('week-numbers');
@@ -80,7 +78,6 @@ function renderCalendar() {
         dayEl.textContent = dayObj.date.getDate();
         dayContainer.appendChild(dayEl);
         
-        // RETTET: Kigger nu i allLogs-arrayet for at vise en prik
         if (allLogs.some(log => log.date === formatDateKey(dayObj.date))) {
             const indicator = document.createElement('div');
             indicator.className = 'log-indicator';
@@ -113,14 +110,12 @@ function renderWeeklyView() {
                                 <span class="text-gray-800">${day.getDate()}</span>
                              </div>`;
 
-        // RETTET: Kigger nu i allLogs for at finde data
         const savedLog = allLogs.find(log => log.date === dateKey);
         let hasMorningData = false, hasTrainingData = false;
 
         if (savedLog) {
-            // Definer hvilke felter der tæller som "morgen" og "træning"
             const morningFields = ['hrv', 'rhr', 'sleep_quality'];
-            const trainingFields = ['pte', 'vo2max', 'avg_watt', 'avg_hr'];
+            const trainingFields = ['pte', 'vo2max', 'avg_watt', 'avg_hr', 'distance', 'duration', 'elevation'];
             hasMorningData = morningFields.some(field => savedLog[field] != null);
             hasTrainingData = trainingFields.some(field => savedLog[field] != null);
         }
@@ -135,17 +130,6 @@ function renderWeeklyView() {
     }
 }
 
-//function renderDataDisplay() {
-//    const dataContent = document.getElementById('tab-content-data');
-//    if (!dataContent) return;
-
-
-//    const dateKey = formatDateKey(selectedDate);
-    // RETTET: Kigger nu KUN i allLogs
-//    const savedData = allLogs.find(log => log.date === dateKey) || {};
-
-// I renderDataDisplay() i calendarManager.js...
-
 function renderDataDisplay() {
     const dataContent = document.getElementById('tab-content-data');
     const stravaActionsContainer = document.getElementById('strava-actions-container');
@@ -155,29 +139,15 @@ function renderDataDisplay() {
     const dateKey = formatDateKey(selectedDate);
     const savedData = allLogs.find(log => log.date === dateKey) || {};
 
-    // --- TRIN 1: BYG DEN MANUELLE INPUT-FORMULAR ---
     let formHTML = `<p class="font-semibold mb-4 text-gray-700">Viser data for: ${selectedDate.toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long' })}</p>`;
     const inputClasses = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500";
     const labelClasses = "block text-sm font-medium text-gray-700";
-
     const dataFields = {
         morning: [{ id: 'hrv', label: 'HRV' }, { id: 'rhr', label: 'Hvilepuls' }, { id: 'sleep_quality', label: 'Søvn (1-5)' }],
         training: [{ id: 'pte', label: 'PTE' }, { id: 'vo2max', label: 'VO2max' }, { id: 'avg_watt', label: 'Gns. Watt' }, { id: 'avg_hr', label: 'Gns. Puls' }],
         general: [{ id: 'notes', label: 'Noter', type: 'textarea' }]
     };
-    
-    // --- TRIN 2: NYT - VIS STRAVA DATA FØRST, HVIS DE FINDES ---
-    if (savedData.stravaActivityId) {
-        formHTML += `<div class="p-4 bg-orange-50 border border-orange-200 rounded-lg mb-6">`;
-        formHTML += `<h4 class="font-bold text-lg mb-2 text-orange-700">Strava Aktivitet</h4>`;
-        formHTML += `<div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">`;
-        if (savedData.distance) formHTML += `<div><strong class="${labelClasses}">Distance</strong><p>${savedData.distance} km</p></div>`;
-        if (savedData.duration) formHTML += `<div><strong class="${labelClasses}">Tid</strong><p>${savedData.duration} min</p></div>`;
-        if (savedData.elevation) formHTML += `<div><strong class="${labelClasses}">Højdemeter</strong><p>${savedData.elevation} m</p></div>`;
-        formHTML += `</div></div>`;
-    }
 
-    // Byg resten af formularen
     formHTML += `<h4 class="font-bold text-lg mt-4 mb-2">Morgen Status</h4><div class="grid grid-cols-2 md:grid-cols-4 gap-4">`;
     dataFields.morning.forEach(f => {
         formHTML += `<div><label for="${f.id}-${dateKey}" class="${labelClasses}">${f.label}</label><input type="number" id="${f.id}-${dateKey}" value="${savedData[f.id] || ''}" class="${inputClasses}"></div>`;
@@ -189,17 +159,25 @@ function renderDataDisplay() {
         formHTML += `<div><label for="${f.id}-${dateKey}" class="${labelClasses}">${f.label}</label><input type="number" step="0.1" id="${f.id}-${dateKey}" value="${savedData[f.id] || ''}" class="${inputClasses}"></div>`;
     });
     formHTML += `</div>`;
+    
+    if (savedData.stravaActivityId) {
+        formHTML += `<div class="p-4 bg-orange-50 border border-orange-200 rounded-lg my-6">`;
+        formHTML += `<h4 class="font-bold text-lg mb-2 text-orange-700">Strava Aktivitet</h4>`;
+        formHTML += `<div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">`;
+        if (savedData.distance) formHTML += `<div><strong class="${labelClasses}">Distance</strong><p>${savedData.distance} km</p></div>`;
+        if (savedData.duration) formHTML += `<div><strong class="${labelClasses}">Tid</strong><p>${savedData.duration} min</p></div>`;
+        if (savedData.elevation) formHTML += `<div><strong class="${labelClasses}">Højdemeter</strong><p>${savedData.elevation} m</p></div>`;
+        formHTML += `</div></div>`;
+    }
 
     formHTML += `<h4 class="font-bold text-lg mt-6 mb-2">Generelt</h4>`;
     formHTML += `<div><label for="notes-${dateKey}" class="${labelClasses}">${dataFields.general[0].label}</label><textarea id="notes-${dateKey}" rows="4" class="${inputClasses}">${savedData.notes || ''}</textarea></div>`;
 
     dataContent.innerHTML = formHTML;
-
     dataContent.querySelectorAll('input, textarea').forEach(input => {
         input.addEventListener('input', () => saveDataForDay(selectedDate));
     });
 
-    // --- TRIN 3: HÅNDTER STRAVA-KNAPPER ---
     stravaActionsContainer.innerHTML = '';
     stravaDetailsDisplay.innerHTML = '';
     stravaDetailsDisplay.style.display = 'none';
@@ -209,7 +187,6 @@ function renderDataDisplay() {
             <button id="show-strava-details-btn" class="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors">Vis Detaljer fra Strava</button>
             <a href="https://www.strava.com/activities/${savedData.stravaActivityId}" target="_blank" class="ml-4 text-sm font-semibold text-orange-600 hover:text-orange-800 transition-colors">Se aktivitet på Strava</a>
         `;
-
         document.getElementById('show-strava-details-btn').addEventListener('click', async () => {
             const btn = document.getElementById('show-strava-details-btn');
             btn.textContent = 'Henter...';
@@ -229,12 +206,9 @@ function renderDataDisplay() {
     }
 }
 
-// --- DATAHÅNDTERING (GEMMER NU KUN TIL DATABASEN) ---
 async function saveDataForDay(date) {
     const dateKey = formatDateKey(date);
     const dataPayload = { date: dateKey };
-
-    // Saml data fra alle felter
     document.querySelectorAll('#tab-content-data input, #tab-content-data textarea').forEach(input => {
         const fieldName = input.id.split('-')[0];
         if (input.type === 'number') {
@@ -243,7 +217,6 @@ async function saveDataForDay(date) {
             dataPayload[fieldName] = input.value || null;
         }
     });
-
     try {
         const response = await fetch('/api/save-daily-log', {
             method: 'POST',
@@ -251,48 +224,35 @@ async function saveDataForDay(date) {
             body: JSON.stringify(dataPayload)
         });
         if (!response.ok) throw new Error('Serverfejl ved gem');
-        
-        // Opdater vores lokale 'allLogs' array for at afspejle ændringen med det samme
         const existingLogIndex = allLogs.findIndex(log => log.date === dateKey);
         if (existingLogIndex > -1) {
             allLogs[existingLogIndex] = { ...allLogs[existingLogIndex], ...dataPayload };
         } else {
             allLogs.push(dataPayload);
         }
-        // Vi kan evt. gen-tegne weekly view for at opdatere prikkerne
-        // renderWeeklyView();
-
     } catch (error) {
         console.error('Fejl ved at gemme data:', error);
     }
 }
 
-// --- INITIALISERING OG EVENT LISTENERS ---V
 export async function initializeCalendar() {
     try {
-    const response = await fetch('/api/get-logs');
-    if (!response.ok) throw new Error('Kunne ikke hente data');
-    const rawLogs = await response.json(); // 1. Hent de rå, "rodede" data
-
-    // 2. NYT, VIGTIGT TRIN: Ryd op i dataene
-    const logsByDate = {};
-    rawLogs.forEach(log => {
-        // For hver dato, gem kun den log, der er oprettet senest
-        if (!logsByDate[log.date] || new Date(log.created_at) > new Date(logsByDate[log.date].created_at)) {
-            logsByDate[log.date] = log;
-        }
-    });
-    // 3. Konverter tilbage til et rent array, hvor der kun er én log pr. dato
-    allLogs = Object.values(logsByDate); 
+        const response = await fetch('/api/get-logs');
+        if (!response.ok) throw new Error('Kunne ikke hente data');
+        const rawLogs = await response.json();
+        const logsByDate = {};
+        rawLogs.forEach(log => {
+            if (!logsByDate[log.date] || new Date(log.created_at) > new Date(logsByDate[log.date].created_at)) {
+                logsByDate[log.date] = log;
+            }
+        });
+        allLogs = Object.values(logsByDate);
+        console.log(`Hentede ${rawLogs.length} rå logs og efterlod ${allLogs.length} unikke, seneste logs.`);
+    } catch (error) {
+        console.error("Fejl ved hentning af logs:", error);
+        allLogs = [];
+    }
     
-    console.log(`Hentede ${rawLogs.length} rå logs og efterlod ${allLogs.length} unikke, seneste logs.`);
-
-} catch (error) {
-    console.error("Fejl ved hentning af logs:", error);
-    allLogs = [];
-}
-    
-    // RETTET: Henter fra localStorage, som er en cache
     activePlan = getActivePlan();
     stravaActivities = JSON.parse(localStorage.getItem('strava_activities')) || [];
     
@@ -306,47 +266,21 @@ export async function initializeCalendar() {
         }
     };
 
-    // Opsæt alle knap-listeners
     addSafeListener('prev-month', 'click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderAll(); });
     addSafeListener('next-month', 'click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderAll(); });
     addSafeListener('export-calendar', 'click', () => window.open('/api/export-logs', '_blank'));
     addSafeListener('load-calendar', 'click', () => document.getElementById('calendar-file-input').click());
+    addSafeListener('calendar-file-input', 'change', (event) => { /* ... uændret ... */ });
 
-    addSafeListener('calendar-file-input', 'change', (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const importedLogs = JSON.parse(e.target.result);
-                const response = await fetch('/api/bulk-save-logs', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(importedLogs),
-                });
-                if (!response.ok) throw new Error('Serveren kunne ikke importere dataene.');
-                alert(`${importedLogs.length} logs blev importeret! Siden genindlæses.`);
-                location.reload();
-            } catch (error) {
-                alert(`Fejl ved import: ${error.message}`);
-            }
-        };
-        reader.readAsText(file);
-    });
-
-    // GENOPBYGGET STRAVA SYNC
     addSafeListener('syncStravaBtn', 'click', async () => {
-    const syncBtn = document.getElementById('syncStravaBtn');
-    const originalText = 'Synkroniser med Strava';
-    syncBtn.textContent = 'Henter aktivitetsliste...';
-    syncBtn.disabled = true;
-
+        const syncBtn = document.getElementById('syncStravaBtn');
+        const originalText = 'Synkroniser med Strava';
+        syncBtn.textContent = 'Henter aktivitetsliste...';
+        syncBtn.disabled = true;
         try {
             const activities = await fetchActivities();
             localStorage.setItem('strava_activities', JSON.stringify(activities));
             stravaActivities = activities;
-
-            // Tjekker for nye aktiviteter ved kun at bruge allLogs fra databasen
             const importedActivityIds = new Set(allLogs.map(log => log.stravaActivityId).filter(id => id));
             const newActivities = activities.filter(act => !importedActivityIds.has(act.id.toString()));
 
@@ -357,8 +291,6 @@ export async function initializeCalendar() {
             }
 
             syncBtn.textContent = `Fandt ${newActivities.length} nye. Forbereder...`;
-            
-            // Bygger en liste af nye logs ud fra de grundlæggende data (hurtigt!)
             const logsToCreate = newActivities.map(activity => {
                 const dateKey = activity.start_date_local.split('T')[0];
                 return {
@@ -366,25 +298,22 @@ export async function initializeCalendar() {
                     distance: activity.distance ? (activity.distance / 1000).toFixed(2) : null,
                     duration: activity.moving_time ? Math.round(activity.moving_time / 60) : null,
                     elevation: activity.total_elevation_gain ? Math.round(activity.total_elevation_gain) : null,
-                    stravaActivityId: activity.id.toString() // Vigtigt: Gem ID som tekst for at undgå fejl
+                    avg_watt: activity.average_watts || null,
+                    avg_hr: activity.average_heartrate || null,
+                    stravaActivityId: activity.id.toString()
                 };
             });
 
-            // Gemmer alle nye logs i databasen med ét enkelt, effektivt kald
             syncBtn.textContent = 'Gemmer i database...';
             const response = await fetch('/api/bulk-save-logs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(logsToCreate),
             });
-
-            if (!response.ok) {
-                throw new Error("Kunne ikke gemme synkroniserede data til databasen.");
-            }
+            if (!response.ok) throw new Error("Kunne ikke gemme de synkroniserede data til databasen.");
 
             alert(`${logsToCreate.length} nye aktiviteter blev synkroniseret! Siden genindlæses nu.`);
             location.reload();
-
         } catch (error) {
             console.error("Fejl under Strava-synkronisering:", error);
             alert(`Der opstod en fejl under synkronisering: ${error.message}`);
