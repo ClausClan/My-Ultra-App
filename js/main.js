@@ -19,6 +19,11 @@ function collectProfileDataFromForm() {
         if (input.value) profileData[input.id] = input.value;
     });
 
+        const picUrlInput = document.getElementById('profilePictureUrl');
+    if (picUrlInput && picUrlInput.value) {
+        profileData.profilePicture = picUrlInput.value;
+    }
+
     // Indsaml zone-data og byg arrays
     const zoneTypes = { hr: 'hr_zones', power: 'power_zones', pace: 'pace_zones' };
     for (const prefix in zoneTypes) {
@@ -50,6 +55,11 @@ function populateFormWithProfileData(profileData) {
             input.value = ''; // Ryd feltet, hvis data ikke findes
         }
     });
+
+    if (profileData.profilePicture) {
+    document.getElementById('profilePicturePreview').src = profileData.profilePicture;
+    document.getElementById('profilePicturePreview').style.display = 'block';
+    }
 
     // Udfyld zone-data fra arrays
     const zoneTypes = { hr: 'hr_zones', power: 'power_zones', pace: 'pace_zones' };
@@ -174,6 +184,84 @@ document.addEventListener('DOMContentLoaded', function() {
                 saveButton.disabled = false;
             }, 2000);
         }
+
+        // --- LOGIK FOR PROFILBILLEDE-UPLOAD ---
+        const profilePicInput = document.getElementById('profilePictureInput');
+        const profilePicPreview = document.getElementById('profilePicturePreview');
+
+        // Vi opretter en "doven" Supabase-klient. Den bliver først initialiseret, når vi skal bruge den.
+        let supabaseClient = null;
+
+        async function getSupabaseClient() {
+            if (supabaseClient) {
+                return supabaseClient;
+            }
+            try {
+                const response = await fetch('/api/get-supabase-config');
+                if (!response.ok) throw new Error('Could not fetch Supabase config');
+                const config = await response.json();
+                
+                // Initialiser klienten med den hentede konfiguration
+                supabaseClient = supabase.createClient(config.url, config.anonKey);
+                return supabaseClient;
+            } catch (error) {
+                console.error("Failed to initialize Supabase client:", error);
+                return null;
+            }
+        }
+
+
+        profilePicInput?.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Hent den initialiserede Supabase-klient
+            const supabase = await getSupabaseClient();
+            if (!supabase) {
+                alert("Fejl: Kunne ikke forbinde til storage-servicen.");
+                return;
+            }
+
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            alert("Uploader billede...");
+
+            try {
+                const { data, error: uploadError } = await supabase.storage
+                    .from('profile-pictures')
+                    .upload(filePath, file);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('profile-pictures')
+                    .getPublicUrl(filePath);
+                
+                profilePicPreview.src = publicUrl;
+                profilePicPreview.style.display = 'block';
+                
+                let hiddenInput = document.getElementById('profilePictureUrl');
+                if (!hiddenInput) {
+                    hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.id = 'profilePictureUrl';
+                    // Antager at Løberdata-siden har en <form> tag
+                    const form = document.querySelector('#loberdata form') || document.getElementById('loberdata');
+                    form.appendChild(hiddenInput);
+                }
+                hiddenInput.value = publicUrl;
+                
+                alert('Billedet er uploadet. Husk at trykke "Gem Profil i Database" for at gemme linket.');
+
+            } catch (error) {
+                console.error('Fejl ved upload af billede:', error);
+                alert(`Fejl: ${error.message}`);
+            }
+        });
+
+        
     });
 
     document.getElementById('exportProfileBtn')?.addEventListener('click', () => {
