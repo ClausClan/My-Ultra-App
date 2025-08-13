@@ -77,12 +77,22 @@ function renderCalendar() {
         if (dayObj.date.toDateString() === selectedDate.toDateString()) dayEl.classList.add('ring-2', 'ring-blue-500');
         dayEl.textContent = dayObj.date.getDate();
         dayContainer.appendChild(dayEl);
-        
-        if (allLogs.some(log => log.date === formatDateKey(dayObj.date))) {
+
+        // --- NY, FORBEDRET LOGIK TIL INDIKATOR-PRIKKER ---
+        const dateKey = formatDateKey(dayObj.date);
+        const savedLog = allLogs.find(log => log.date === dateKey);
+
+        if (savedLog) {
             const indicator = document.createElement('div');
-            indicator.className = 'log-indicator';
+            // Tjek om det er en Strava-aktivitet
+            if (savedLog.stravaActivityId) {
+                indicator.className = 'log-indicator strava'; // Særlig klasse til Strava
+            } else {
+                indicator.className = 'log-indicator'; // Almindelig klasse for manuelle logs
+            }
             dayContainer.appendChild(indicator);
         }
+        // --------------------------------------------------
 
         dayEl.addEventListener('click', () => {
             selectedDate = dayObj.date;
