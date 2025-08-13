@@ -108,7 +108,7 @@ async function redirectToStrava() {
     const stravaClientId = config.clientId;
 
     // 2. Byg URL'en med den modtagne nøgle
-    const redirectUri = window.location.href.split('?')[0]; // Fjerner gamle parametre
+    const redirectUri = window.location.origin;
     const scope = 'read,activity:read_all';
     const authUrl = `https://www.strava.com/oauth/authorize?client_id=${stravaClientId}&response_type=code&redirect_uri=${redirectUri}&approval_prompt=force&scope=${scope}`;
 
