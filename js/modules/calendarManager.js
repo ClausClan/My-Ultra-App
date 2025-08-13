@@ -141,6 +141,19 @@ function renderWeeklyView() {
 }
 
 function renderDataDisplay() {
+ 
+        // --- VIS DAGENS TRÆNINGSPLAN ---
+    const planContainer = document.createElement('div');
+    const todaysPlan = activePlan.find(p => p.date === dateKey);
+    if (todaysPlan) {
+        planContainer.className = 'p-4 bg-blue-50 border border-blue-200 rounded-lg mb-6';
+        planContainer.innerHTML = `
+            <h4 class="font-bold text-lg mb-2 text-blue-700">Dagens Plan</h4>
+            <p>${todaysPlan.plan}</p>
+        `;
+        dataContent.prepend(planContainer); // Indsæt planen øverst
+    }
+    
     const dataContent = document.getElementById('tab-content-data');
     const stravaActionsContainer = document.getElementById('strava-actions-container');
     const stravaDetailsDisplay = document.getElementById('strava-details-display');
