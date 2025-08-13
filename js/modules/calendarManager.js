@@ -293,15 +293,15 @@ export async function initializeCalendar() {
             syncBtn.textContent = `Fandt ${newActivities.length} nye. Forbereder...`;
             const logsToCreate = newActivities.map(activity => {
                 console.log("Rå aktivitet-data modtaget fra Strava:", activity);
-                
+
                 const dateKey = activity.start_date_local.split('T')[0];
                 return {
                     date: dateKey,
                     distance: activity.distance ? (activity.distance / 1000).toFixed(2) : null,
                     duration: activity.moving_time ? Math.round(activity.moving_time / 60) : null,
                     elevation: activity.total_elevation_gain ? Math.round(activity.total_elevation_gain) : null,
-                    avg_watt: activity.average_watts || null,
-                    avg_hr: activity.average_heartrate || null,
+                    avg_watt: activity.average_watts ? Math.round(activity.average_watts) : null,
+                    avg_hr: activity.average_heartrate ? Math.round(activity.average_heartrate) : null,
                     stravaActivityId: activity.id.toString()
                 };
             });
