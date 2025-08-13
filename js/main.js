@@ -1,4 +1,4 @@
-// main.js - FULDSTÆNDIG RETTET VERSION TIL PROFIL-HÅNDTERING (12. AUGUST 2025)
+// main.js - ENDELIG VERSION  (13. AUGUST 2025)
 
 import { initializeCalendar } from './modules/calendarManager.js';
 import { updateHomePageDashboard } from './modules/chartManager.js';
@@ -6,62 +6,67 @@ import { initializePlanPage, getActivePlan } from './modules/planManager.js';
 import { initializeAnalysePage } from './modules/analyseManager.js';
 import { initializeStravaConnection } from './modules/stravaManager.js';
 
-// --- NYE, CENTRALE HJÆLPEFUNKTIONER ---
+// --- GLOBALE VARIABLER ---
+let supabaseClient = null;
+let userProfile = null; // Her gemmer vi den indlæste profil
 
-/**
- * Samler ALLE data fra Løberdata-formularen og returnerer et rent JavaScript-objekt.
- * Bruges af både Gem og Eksporter.
- */
+// --- HJÆLPEFUNKTIONER ---
+
+async function getSupabaseClient() {
+    if (supabaseClient) return supabaseClient;
+    try {
+        const response = await fetch('/api/get-supabase-config');
+        if (!response.ok) throw new Error('Could not fetch Supabase config');
+        const config = await response.json();
+        supabaseClient = supabase.createClient(config.url, config.anonKey);
+        return supabaseClient;
+    } catch (error) {
+        console.error("Failed to initialize Supabase client:", error);
+        return null;
+    }
+}
+
 function collectProfileDataFromForm() {
     const profileData = {};
-    // Indsaml alle de "normale" data-felter
     document.querySelectorAll('#loberdata .data-input').forEach(input => {
         if (input.value) profileData[input.id] = input.value;
     });
 
-        const picUrlInput = document.getElementById('profilePictureUrl');
-    if (picUrlInput && picUrlInput.value) {
-        profileData.profilePicture = picUrlInput.value;
+    const hiddenPicUrlInput = document.getElementById('profilePictureUrl');
+    if (hiddenPicUrlInput && hiddenPicUrlInput.value) {
+        profileData.profilePicture = hiddenPicUrlInput.value;
     }
 
-    // Indsaml zone-data og byg arrays
     const zoneTypes = { hr: 'hr_zones', power: 'power_zones', pace: 'pace_zones' };
     for (const prefix in zoneTypes) {
         const arrayKey = zoneTypes[prefix];
         profileData[arrayKey] = [];
         for (let i = 1; i <= 5; i++) {
             const input = document.getElementById(`${prefix}Zone${i}`);
-            if (input) {
-                profileData[arrayKey].push(input.value || null);
-            }
+            if (input) profileData[arrayKey].push(input.value || null);
         }
     }
     return profileData;
 }
 
-/**
- * Tager et JavaScript-objekt med profildata og udfylder hele Løberdata-formularen.
- * Bruges af både Hent fra Database og Importer.
- * @param {object} profileData - Objektet med profildata.
- */
 function populateFormWithProfileData(profileData) {
     if (!profileData) return;
 
-    // Udfyld de "normale" data-felter
     document.querySelectorAll('#loberdata .data-input').forEach(input => {
-        if (profileData[input.id]) {
-            input.value = profileData[input.id];
-        } else {
-            input.value = ''; // Ryd feltet, hvis data ikke findes
-        }
+        input.value = profileData[input.id] || '';
     });
-
+    
+    const profilePicPreview = document.getElementById('profilePicturePreview');
+    const hiddenPicUrlInput = document.getElementById('profilePictureUrl');
     if (profileData.profilePicture) {
-    document.getElementById('profilePicturePreview').src = profileData.profilePicture;
-    document.getElementById('profilePicturePreview').style.display = 'block';
+        profilePicPreview.src = profileData.profilePicture;
+        profilePicPreview.style.display = 'block';
+        if(hiddenPicUrlInput) hiddenPicUrlInput.value = profileData.profilePicture;
+    } else {
+        if(profilePicPreview) profilePicPreview.style.display = 'none';
+        if(hiddenPicUrlInput) hiddenPicUrlInput.value = '';
     }
 
-    // Udfyld zone-data fra arrays
     const zoneTypes = { hr: 'hr_zones', power: 'power_zones', pace: 'pace_zones' };
     for (const prefix in zoneTypes) {
         const arrayKey = zoneTypes[prefix];
@@ -74,11 +79,9 @@ function populateFormWithProfileData(profileData) {
         }
     }
     
-    personalizeDashboard(profileData.runnerName);
     initializeProfilePageCalculations();
 }
 
-// --- ANDRE FUNKTIONER ---
 async function loadProfileData() {
     try {
         const response = await fetch('/api/get-profile');
@@ -89,9 +92,11 @@ async function loadProfileData() {
             }
             throw new Error('Serverfejl ved hentning af profil');
         }
+        userProfile = await response.json(); // Gem data i den globale variabel
         
-        const profileData = await response.json();
-        populateFormWithProfileData(profileData);
+        populateFormWithProfileData(userProfile);
+        personalizeDashboard(userProfile?.runnerName, userProfile?.profilePicture);
+
     } catch (error) {
         console.error("Fejl ved indlæsning af profil:", error);
     }
@@ -120,12 +125,22 @@ function initializeProfilePageCalculations() {
     }
 }
 
-function personalizeDashboard(name) {
+function personalizeDashboard(name, pictureUrl) {
     const nameEl = document.getElementById('dashboard-runner-name');
+    const thumbEl = document.getElementById('dashboard-thumbnail');
+
     if (nameEl && name) {
         nameEl.textContent = `Velkommen, ${name}`;
     } else if (nameEl) {
         nameEl.textContent = `Min Løberprofil`;
+    }
+
+    if (thumbEl && pictureUrl) {
+        thumbEl.src = pictureUrl;
+        thumbEl.style.display = 'block';
+    } else if (thumbEl) {
+        thumbEl.style.display = 'none';
+        thumbEl.src = '';
     }
 }
 
@@ -147,6 +162,10 @@ function updateHomepageStatus() {
 
 // --- APPENS "MOTOR" ---
 document.addEventListener('DOMContentLoaded', function() {
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.id = 'profilePictureUrl';
+    document.body.appendChild(hiddenInput);
     
     const navButtons = document.querySelectorAll('.nav-btn');
     const pages = document.querySelectorAll('.page');
@@ -156,16 +175,47 @@ document.addEventListener('DOMContentLoaded', function() {
             pages.forEach(page => page.classList.remove('active'));
             button.classList.add('active');
             document.getElementById(button.dataset.page).classList.add('active');
+            
+            // NYT: Hver gang vi går til "Hjem", opdateres dashboardet med de seneste data
+            if (button.dataset.page === 'hjem' && userProfile) {
+                personalizeDashboard(userProfile.runnerName, userProfile.profilePicture);
+            }
         });
     });
 
+    const profilePicInput = document.getElementById('profilePictureInput');
+    profilePicInput?.addEventListener('change', async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const supabase = await getSupabaseClient();
+        if (!supabase) return alert("Fejl: Kunne ikke forbinde til storage-servicen.");
+
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        alert("Uploader billede...");
+        try {
+            await supabase.storage.from('profile-pictures').upload(filePath, file);
+            const { data: { publicUrl } } = supabase.storage.from('profile-pictures').getPublicUrl(filePath);
+            
+            document.getElementById('profilePicturePreview').src = publicUrl;
+            document.getElementById('profilePicturePreview').style.display = 'block';
+            document.getElementById('profilePictureUrl').value = publicUrl;
+            
+            alert('Billedet er uploadet. Husk at trykke "Gem Profil i Database".');
+        } catch (error) {
+            console.error('Fejl ved upload af billede:', error);
+            alert(`Fejl: ${error.message}`);
+        }
+    });
+    
     document.getElementById('saveProfileBtn')?.addEventListener('click', async () => {
         const saveButton = document.getElementById('saveProfileBtn');
         saveButton.textContent = "Gemmer...";
         saveButton.disabled = true;
-
         const profileData = collectProfileDataFromForm();
-
         try {
             const response = await fetch('/api/save-profile', {
                 method: 'POST',
@@ -173,8 +223,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify(profileData)
             });
             if (!response.ok) throw new Error("Serveren kunne ikke gemme profilen.");
+            
+            userProfile = profileData; // OPDATER den globale variabel
+            personalizeDashboard(userProfile.runnerName, userProfile.profilePicture);
             saveButton.textContent = "Profil Gemt!";
-            personalizeDashboard(profileData.runnerName);
         } catch (error) {
             console.error("Fejl ved at gemme profil:", error);
             saveButton.textContent = "Fejl - Prøv Igen";
@@ -184,87 +236,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 saveButton.disabled = false;
             }, 2000);
         }
-
-        // --- LOGIK FOR PROFILBILLEDE-UPLOAD ---
-        const profilePicInput = document.getElementById('profilePictureInput');
-        console.log("Leder efter #profilePictureInput:", profilePicInput); // VIGTIG LINJE
-        console.log("Resultat af getElementById('profilePictureInput'):", profilePicInput); 
-
-        const profilePicPreview = document.getElementById('profilePicturePreview');
-
-        // Vi opretter en "doven" Supabase-klient. Den bliver først initialiseret, når vi skal bruge den.
-        let supabaseClient = null;
-
-        async function getSupabaseClient() {
-            if (supabaseClient) {
-                return supabaseClient;
-            }
-            try {
-                const response = await fetch('/api/get-supabase-config');
-                if (!response.ok) throw new Error('Could not fetch Supabase config');
-                const config = await response.json();
-                
-                // Initialiser klienten med den hentede konfiguration
-                supabaseClient = supabase.createClient(config.url, config.anonKey);
-                return supabaseClient;
-            } catch (error) {
-                console.error("Failed to initialize Supabase client:", error);
-                return null;
-            }
-        }
-
-
-        profilePicInput?.addEventListener('change', async (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            // Hent den initialiserede Supabase-klient
-            const supabase = await getSupabaseClient();
-            if (!supabase) {
-                alert("Fejl: Kunne ikke forbinde til storage-servicen.");
-                return;
-            }
-
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Date.now()}.${fileExt}`;
-            const filePath = `${fileName}`;
-
-            alert("Uploader billede...");
-
-            try {
-                const { data, error: uploadError } = await supabase.storage
-                    .from('profile-pictures')
-                    .upload(filePath, file);
-
-                if (uploadError) throw uploadError;
-
-                const { data: { publicUrl } } = supabase.storage
-                    .from('profile-pictures')
-                    .getPublicUrl(filePath);
-                
-                profilePicPreview.src = publicUrl;
-                profilePicPreview.style.display = 'block';
-                
-                let hiddenInput = document.getElementById('profilePictureUrl');
-                if (!hiddenInput) {
-                    hiddenInput = document.createElement('input');
-                    hiddenInput.type = 'hidden';
-                    hiddenInput.id = 'profilePictureUrl';
-                    // Antager at Løberdata-siden har en <form> tag
-                    const form = document.querySelector('#loberdata form') || document.getElementById('loberdata');
-                    form.appendChild(hiddenInput);
-                }
-                hiddenInput.value = publicUrl;
-                
-                alert('Billedet er uploadet. Husk at trykke "Gem Profil i Database" for at gemme linket.');
-
-            } catch (error) {
-                console.error('Fejl ved upload af billede:', error);
-                alert(`Fejl: ${error.message}`);
-            }
-        });
-
-        
     });
 
     document.getElementById('exportProfileBtn')?.addEventListener('click', () => {
