@@ -216,6 +216,9 @@ document.addEventListener('DOMContentLoaded', function() {
         saveButton.textContent = "Gemmer...";
         saveButton.disabled = true;
         const profileData = collectProfileDataFromForm();
+
+         console.log("Data der sendes til serveren:", profileData);
+         
         try {
             const response = await fetch('/api/save-profile', {
                 method: 'POST',
