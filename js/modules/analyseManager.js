@@ -47,32 +47,30 @@ async function renderAllAnalyseCharts() {
 
 // --- GRAF-SPECIFIKKE FUNKTIONER ---
 
+// ERSTAT din gamle renderPerformanceChart-funktion med denne KORREKTE version
+
 function renderPerformanceChart(allLogs, activePlan, userProfile) {
     const ctx = document.getElementById('performanceChart')?.getContext('2d');
     if (!ctx) return;
     if (performanceChart) performanceChart.destroy();
     if (!activePlan || activePlan.length === 0) return;
 
-    // Få start-værdier fra profilen, med 0 som fallback
     let ctl = parseFloat(userProfile?.startingCtl) || 0;
     let atl = parseFloat(userProfile?.startingAtl) || 0;
 
     const CTL_CONST = 42, ATL_CONST = 7;
     const ctlData = [], atlData = [], tsbData = [];
+    const raceAnnotations = {}; // Gør klar til mål-streger
     const today = new Date().toISOString().split('T')[0];
     
-    // Byg en komplet datakalender fra starten af planen
     const startDate = new Date(activePlan[0].date);
     const endDate = new Date(activePlan[activePlan.length - 1].date);
-    
-    // Vi bruger en Map for hurtigt opslag af logs
     const logsMap = new Map(allLogs.map(log => [log.date, log]));
 
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
         const dateKey = formatDateKey(d);
         let tss = 0;
 
-        // Byg hybrid-TSS: Faktisk data før i dag, planlagt data fra i dag og frem
         if (dateKey < today) {
             const logForDay = logsMap.get(dateKey);
             tss = calculateActualTss(logForDay);
@@ -87,44 +85,39 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
         ctlData.push({ x: dateKey, y: ctl });
         atlData.push({ x: dateKey, y: atl });
         tsbData.push({ x: dateKey, y: ctl - atl });
+
+        // Find og tilføj mål-streger
+        const planForDay = activePlan.find(p => p.date === dateKey);
+        if (planForDay) {
+            const planText = planForDay.plan.toLowerCase();
+            if (planText.startsWith('a-mål:') || planText.startsWith('b-mål:') || planText.startsWith('c-mål:')) {
+                let borderColor = '#facc15', labelContent = 'C-Mål';
+                if (planText.startsWith('a-mål:')) { borderColor = '#e11d48'; labelContent = 'A-Mål'; }
+                else if (planText.startsWith('b-mål:')) { borderColor = '#f97316'; labelContent = 'B-Mål'; }
+                raceAnnotations[dateKey] = { type: 'line', xMin: dateKey, xMax: dateKey, borderColor, borderWidth: 2, label: { content: labelContent, display: true, position: 'start', yAdjust: -10 } };
+            }
+        }
     }
 
-    // RETTET: Korrekt opsætning af baggrunds-zoner med type: 'box'
     const formZones = {
-        peakZone: {
-            type: 'box',
-            yMin: 15,
-            yMax: 25,
-            backgroundColor: 'rgba(250, 204, 21, 0.15)', // Gennemsigtig gul
-            borderColor: 'transparent',
-            label: { content: 'Peak Zone', display: true, position: 'start', color: 'rgba(120, 90, 0, 0.5)', font: { size: 10 } }
-        },
-        freshZone: {
-            type: 'box',
-            yMin: 5,
-            yMax: 15,
-            backgroundColor: 'rgba(34, 197, 94, 0.1)', // Gennemsigtig grøn
-            borderColor: 'transparent',
-            label: { content: 'Friskhed', display: true, position: 'start', color: 'rgba(0, 100, 0, 0.5)', font: { size: 10 } }
-        },
+        peakZone: { type: 'box', yMin: 15, yMax: 25, backgroundColor: 'rgba(250, 204, 21, 0.15)', borderColor: 'transparent', label: { content: 'Peak', display: true, position: 'start', color: 'rgba(120, 90, 0, 0.5)', font: { size: 10 } } },
+        freshZone: { type: 'box', yMin: 5, yMax: 15, backgroundColor: 'rgba(34, 197, 94, 0.1)', borderColor: 'transparent', label: { content: 'Frisk', display: true, position: 'start', color: 'rgba(0, 100, 0, 0.5)', font: { size: 10 } } },
     };
 
     performanceChart = new Chart(ctx, {
         type: 'line',
-        data: {
-            datasets: [
-                { label: 'Fitness (CTL)', data: ctlData, borderColor: '#0284c7', borderWidth: 2.5, pointRadius: 0 },
-                { label: 'Træthed (ATL)', data: atlData, borderColor: '#ef4444', borderWidth: 1.5, pointRadius: 0 },
-                { label: 'Form (TSB)', data: tsbData, borderColor: '#22c55e', borderWidth: 2, pointRadius: 0 }
-            ]
-        },
+        data: { datasets: [ /* ... uændret ... */ ] },
         options: {
             responsive: true, maintainAspectRatio: false,
             scales: { x: { type: 'time', time: { unit: 'week' } }, y: { title: { display: true, text: 'Score' } } },
             plugins: {
                 title: { display: true, text: 'Progression: Aktuel vs. Planlagt', font: { size: 16 } },
                 annotation: {
-                    annotations: formZones
+                    // RETTET: Her fletter vi de to objekter sammen
+                    annotations: {
+                        ...formZones, // ...først baggrunds-zonerne
+                        ...raceAnnotations // ...og så de lodrette streger for mål
+                    }
                 }
             }
         }
