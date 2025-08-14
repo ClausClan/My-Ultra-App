@@ -46,6 +46,29 @@ function estimateTssFromPlan(planText) {
     return baseTssPerHour;
 }
 
+function getWorkoutDetails(planText) {
+    const text = planText.toLowerCase();
+    const details = {
+        color: '#6b7280', // Grå (default)
+        type: 'Andet',
+        rpe: ''
+    };
+
+    if (text.includes('langtur')) { details.color = '#0ea5e9'; details.type = 'Langtur'; } // Blå
+    else if (text.includes('tempo')) { details.color = '#f97316'; details.type = 'Tempo'; } // Orange
+    else if (text.includes('bakke') || text.includes('intervaller')) { details.color = '#ef4444'; details.type = 'Høj Intensitet'; } // Rød
+    else if (text.includes('let løb') || text.includes('restitution')) { details.color = '#22c55e'; details.type = 'Let Løb'; } // Grøn
+    else if (text.includes('styrke')) { details.color = '#8b5cf6'; details.type = 'Styrke'; } // Lilla
+    else if (text.includes('hvile')) { details.type = 'Hvile'; }
+    
+    const rpeMatch = text.match(/rpe\s*\d(-\d)?/);
+    if (rpeMatch) {
+        details.rpe = rpeMatch[0].toUpperCase();
+    }
+    return details;
+}
+
+
 function getStartOfWeekKey(d) {
     const date = new Date(d);
     const day = date.getDay();
@@ -112,7 +135,7 @@ function renderPlanTimelineChart() {
         tsbData.push({ x: day.date, y: ctl - atl });
 
         const planText = day.plan.toLowerCase();
-        if (day.isRaceDay || planText.includes('mål')) {
+            if (planText.includes('a-mål') || planText.includes('b-mål') || planText.includes('c-mål')) {
             let borderColor = '#facc15';
             if (planText.includes('a-mål')) borderColor = '#e11d48';
             if (planText.includes('b-mål')) borderColor = '#f97316';
@@ -152,23 +175,55 @@ function renderWeek(weekIndex) {
     
     const mondayKey = weeks[weekIndex];
     const weekDays = activePlan.filter(d => getStartOfWeekKey(new Date(d.date)) === mondayKey);
+    
+    // RETTET: Titelformat
     const mondayDate = new Date(mondayKey);
-    const weekNum = getWeekNumberForDisplay(mondayDate);
+    const sundayDate = new Date(mondayDate);
+    sundayDate.setDate(mondayDate.getDate() + 6);
+    const formatDate = (d) => `${d.getDate()}-${d.getMonth() + 1}-${d.getFullYear()}`;
+    weeklyOverviewTitle.textContent = `Træningsuge ${getWeekNumberForDisplay(mondayDate)}, ${formatDate(mondayDate)} til ${formatDate(sundayDate)}`;
 
-    weeklyOverviewTitle.textContent = `Uge ${weekNum}, ${mondayDate.getFullYear()}`;
+    // RETTET: Søjlediagram-logik
     weeklyBarChart.innerHTML = weekDays.map(day => {
-        const tss = estimateTssFromPlan(day.plan);
-        const loadPercentage = Math.min(100, (tss / 150) * 100);
         const dayDate = new Date(day.date);
+        const workouts = day.plan.split('+').map(p => p.trim());
+        let barHtml = '';
+
+        if (workouts.length > 1) { // Stakkede søjler
+            const workoutDetails = workouts.map(p => ({ plan: p, tss: estimateTssFromPlan(p) })).sort((a,b) => a.tss - b.tss);
+            workoutDetails.forEach(wd => {
+                const details = getWorkoutDetails(wd.plan);
+                const loadPercentage = Math.min(100, (wd.tss / 150) * 100);
+                barHtml += `<div class="bar-segment" style="height: ${loadPercentage}%; background-color: ${details.color};" title="${wd.plan}">
+                                <div class="bar-text">${details.type}<br>${details.rpe}</div>
+                            </div>`;
+            });
+        } else { // Enkelt søjle
+            const tss = estimateTssFromPlan(day.plan);
+            const details = getWorkoutDetails(day.plan);
+            const loadPercentage = Math.min(100, (tss / 150) * 100);
+            if (details.type !== 'Hvile') {
+                 barHtml = `<div class="bar-segment" style="height: ${loadPercentage}%; background-color: ${details.color};" title="${day.plan}">
+                                <div class="bar-text">${details.type}<br>${details.rpe}</div>
+                            </div>`;
+            }
+        }
+        
+        // RETTET: Label under søjlen
         return `<div class="text-center">
-                    <div class="h-48 flex flex-col-reverse bg-gray-100 rounded" title="${day.plan} (Est. TSS: ${tss})">
-                        <div class="bg-blue-500" style="height: ${loadPercentage}%"></div>
-                    </div>
-                    <p class="text-sm mt-1">${dayDate.toLocaleDateString('da-DK', { weekday: 'short' })}</p>
+                    <div class="h-48 flex flex-col-reverse bg-gray-100 rounded">${barHtml}</div>
+                    <p class="text-sm mt-1 font-semibold">${dayDate.toLocaleDateString('da-DK', { weekday: 'short' })} ${dayDate.getDate()}/${dayDate.getMonth() + 1}</p>
                 </div>`;
     }).join('');
 
-    planDetailsView.innerHTML = `<h4 class="font-bold text-lg mb-2">Detaljeret Plan: Uge ${weekNum}</h4>` + weekDays.map(day => `<div class="day-row"><strong>${new Date(day.date).toLocaleDateString('da-DK', { weekday: 'long' })}:</strong> <span>${day.plan}</span></div>`).join('');
+    // RETTET: Detaljeret plan-liste
+    planDetailsView.innerHTML = `<h4 class="font-bold text-lg mb-2">Detaljeret Plan: Uge ${getWeekNumberForDisplay(mondayDate)}</h4>` + 
+        weekDays.map(day => {
+            const d = new Date(day.date);
+            const dateString = `${d.getDate()}/${d.getMonth() + 1}`;
+            const dayString = d.toLocaleDateString('da-DK', { weekday: 'long' });
+            return `<div class="day-row"><strong>${dayString} ${dateString}:</strong> <span>${day.plan}</span></div>`;
+        }).join('');
 }
 
 function renderPlanPage() {
