@@ -15,7 +15,7 @@ function estimateTssFromPlan(planText) {
     if (text.includes('a-mål')) return 150;
     if (text.includes('b-mål')) return 120;
     if (text.includes('c-mål')) return 90;
-    //if (text.includes('hvile') || text.includes('restitution')) return 15;
+    if (text.includes('hvile') || text.includes('restitution')) return 15;
 
     let durationInMinutes = 0;
     // Tjek for varighed i timer (f.eks. "2t", "1.5 t")
@@ -134,13 +134,37 @@ function renderPlanTimelineChart() {
         atlData.push({ x: day.date, y: atl });
         tsbData.push({ x: day.date, y: ctl - atl });
 
-        const planText = day.plan.toLowerCase();
-            if (planText.includes('a-mål') || planText.includes('b-mål') || planText.includes('c-mål')) {
-            let borderColor = '#facc15';
-            if (planText.includes('a-mål')) borderColor = '#e11d48';
-            if (planText.includes('b-mål')) borderColor = '#f97316';
-            raceAnnotations[day.date] = { type: 'line', xMin: day.date, xMax: day.date, borderColor, borderWidth: 2, label: { content: day.plan.split(':')[0], display: true, position: 'start', yAdjust: -10 } };
-        }
+const planText = day.plan.toLowerCase();
+
+// Betingelsen for at tegne en streg er korrekt
+if (planText.includes('a-mål') || planText.includes('b-mål') || planText.includes('c-mål')) {
+    
+    let borderColor = '#facc15'; // Default for C-Mål
+    let labelContent = 'C-Mål';   // Default label for C-Mål
+
+    if (planText.includes('a-mål')) {
+        borderColor = '#e11d48';
+        labelContent = 'A-Mål';
+    } else if (planText.includes('b-mål')) {
+        borderColor = '#f97316';
+        labelContent = 'B-Mål';
+    }
+
+        // Bruger nu den simple 'labelContent' i stedet for den fulde tekst
+        raceAnnotations[day.date] = { 
+            type: 'line', 
+            xMin: day.date, 
+            xMax: day.date, 
+            borderColor, 
+            borderWidth: 2, 
+            label: { 
+                content: labelContent, // DEN RETTEDE DEL
+                display: true, 
+                position: 'start', 
+                yAdjust: -10 
+            } 
+        };
+    }
     });
 
     // NYT: Tilføjer "I dag"-linjen
