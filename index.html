@@ -104,20 +104,34 @@
 
         <div class="form-section">
             <h3 class="section-title">Fysiologiske Data</h3>
-            <div class="form-grid">
-                <div class="input-group">
-                    <label for="restingHR">Hvilepuls</label>
-                    <input type="number" id="restingHR" class="data-input"><p class="help-text">Din gennemsnitlige hvilepuls målt om morgenen.</p>
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label for="restingHR">Hvilepuls</label>
+                        <input type="number" id="restingHR" class="data-input">
+                        <p class="help-text">...</p>
+                    </div>
+                    <div class="input-group">
+                        <label for="maxHR">Max Puls</label>
+                        <input type="number" id="maxHR" class="data-input">
+                        <p class="help-text">...</p>
+                    </div>
+                    <div class="input-group">
+                        <label for="criticalPower">Critical Power (Watt)</label>
+                        <input type="number" id="criticalPower" class="data-input">
+                        <p class="help-text">...</p>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="startingCtl">Start CTL</label>
+                        <input type="number" step="0.1" id="startingCtl" class="data-input">
+                        <p class="help-text">Din Fitness-værdi (CTL) fra før planen startede.</p>
+                    </div>
+                    <div class="input-group">
+                        <label for="startingAtl">Start ATL</label>
+                        <input type="number" step="0.1" id="startingAtl" class="data-input">
+                        <p class="help-text">Din Trætheds-værdi (ATL) fra før planen startede.</p>
+                    </div>
                 </div>
-                <div class="input-group">
-                    <label for="maxHR">Max Puls</label>
-                    <input type="number" id="maxHR" class="data-input"><p class="help-text">Din højest målte puls under maksimal anstrengelse.</p>
-                </div>
-                <div class="input-group">
-                    <label for="criticalPower">Critical Power (Watt)</label>
-                    <input type="number" id="criticalPower" class="data-input"><p class="help-text">Din tærskel-watt, ofte estimeret fra en test.</p>
-                </div>
-            </div>
         </div>
 
         <div class="form-section">
