@@ -108,18 +108,39 @@ function renderWeeklyView() {
     if (!weeklyViewGrid) return;
     weeklyViewGrid.innerHTML = '';
     const startOfWeek = getStartOfWeek(selectedDate);
+
     for (let i = 0; i < 7; i++) {
         const day = new Date(startOfWeek);
         day.setDate(startOfWeek.getDate() + i);
         const dateKey = formatDateKey(day);
+
         const dayCard = document.createElement('div');
         dayCard.className = 'bg-white rounded-lg p-3 shadow flex flex-col min-h-[150px] cursor-pointer';
         if (day.toDateString() === selectedDate.toDateString()) dayCard.classList.add('ring-2', 'ring-blue-500');
+
+        // Trin 1: Opret overskriften med ugedag og dato
         dayCard.innerHTML = `<div class="flex justify-between items-center text-sm font-semibold">
                                 <span class="text-gray-500">${new Intl.DateTimeFormat('da-DK', { weekday: 'short' }).format(day)}</span>
                                 <span class="text-gray-800">${day.getDate()}</span>
                              </div>`;
 
+        // Trin 2: Find og vis planen for dagen
+        const activePlan = getActivePlan(); // Hent den indlæste plan
+        const plannedDay = activePlan.find(p => p.date === dateKey);
+        
+        const planTextElement = document.createElement('p');
+        planTextElement.className = 'text-xs text-blue-600 mt-2 font-semibold flex-grow'; // flex-grow er vigtig!
+        if (plannedDay && plannedDay.plan) {
+            planTextElement.textContent = plannedDay.plan;
+        } else {
+            planTextElement.textContent = ''; // Tom tekst, hvis der ikke er en plan
+        }
+        dayCard.appendChild(planTextElement);
+
+
+        // Trin 3: Eksisterende logik for de farvede prikker
+        const dotsContainer = document.createElement('div');
+        dotsContainer.className = 'flex items-center gap-1.5 mt-auto pt-2';
         const savedLog = allLogs.find(log => log.date === dateKey);
         let hasMorningData = false, hasTrainingData = false;
 
@@ -129,18 +150,15 @@ function renderWeeklyView() {
             hasMorningData = morningFields.some(field => savedLog[field] != null);
             hasTrainingData = trainingFields.some(field => savedLog[field] != null);
         }
-
-        const dotsContainer = document.createElement('div');
-        dotsContainer.className = 'flex items-center gap-1.5 mt-auto pt-2';
+        
         dotsContainer.innerHTML = `<div class="w-2.5 h-2.5 rounded-full" title="Morgen status" style="background-color: ${hasMorningData ? '#8b5cf6' : '#e5e7eb'}"></div>
                                  <div class="w-2.5 h-2.5 rounded-full" title="Træningsdata" style="background-color: ${hasTrainingData ? '#22c55e' : '#e5e7eb'}"></div>`;
         dayCard.appendChild(dotsContainer);
+        
         dayCard.addEventListener('click', () => { selectedDate = day; renderAll(); });
         weeklyViewGrid.appendChild(dayCard);
     }
 }
-
-// ERSTAT din gamle renderDataDisplay-funktion med denne KORREKTE version
 
 function renderDataDisplay() {
     const dataContent = document.getElementById('tab-content-data');
