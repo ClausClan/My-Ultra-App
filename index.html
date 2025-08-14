@@ -66,72 +66,109 @@
 </section>
 
         <!-- Løberdata -->
-        <section id="loberdata" class="page">
+<section id="loberdata" class="page">
     <div class="mx-auto px-4 sm:px-6 lg:px-8" style="max-width: 95%;">
         <div class="form-container">
             <h2 class="form-title">Min Løberprofil</h2>
-            </div> class="form-section">
-                    <h3 class="section-title">Personlige Data</h3>
-                        <div class="form-grid">
-                            <div class="input-group">
-                                <label for="runnerName">Navn</label>
-                                <input type="text" id="runnerName" class="data-input">
-                            </div>
-                            <div class="input-group">
-                                <label for="runnerDob">Fødselsdato</label>
-                                <input type="date" id="runnerDob" class="data-input">
-                            </div>
-                            <div class="input-group">
-                                <label>Beregnet Alder</label>
-                                <p id="calculatedAge" class="mt-2 text-lg font-semibold text-slate-700">-</p>
-                            </div>
-                            <div class="input-group">
-                                <label for="profilePicture">Profilbillede</label>
-                                <input type="file" id="profilePictureInput" accept="image/*" class="mt-1">
-                                <img id="profilePicturePreview" src="" class="mt-2 h-24 w-24 rounded-full object-cover">
-                            </div>
-                            <div class="input-group"><label for="runnerWeight">Vægt (kg)</label><input type="number" step="0.1" id="runnerWeight" class="data-input"></div>
-                            <div class="input-group"><label for="runnerHeight">Højde (cm)</label><input type="number" id="runnerHeight" class="data-input"></div>
-                        </div>
+
+            <div class="form-section">
+                <h3 class="section-title">Personlige Data</h3>
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label for="runnerName">Navn</label>
+                        <input type="text" id="runnerName" class="data-input">
                     </div>
-                <div class="form-section">
-                    <h3 class="section-title">Fysiologiske Data</h3>
-                    <div class="form-grid">
-                        <div class="input-group"><label for="restingHR">Hvilepuls</label><input type="number" id="restingHR" class="data-input"><p class="help-text">Din gennemsnitlige hvilepuls målt om morgenen.</p></div>
-                        <div class="input-group"><label for="maxHR">Max Puls</label><input type="number" id="maxHR" class="data-input"><p class="help-text">Din højest målte puls under maksimal anstrengelse.</p></div>
-                        <div class="input-group"><label for="criticalPower">Critical Power (Watt)</label><input type="number" id="criticalPower" class="data-input"><p class="help-text">Din tærskel-watt, ofte estimeret fra en test.</p></div>
+                    <div class="input-group">
+                        <label for="runnerDob">Fødselsdato</label>
+                        <input type="date" id="runnerDob" class="data-input">
                     </div>
-                </div>
-                <div class="form-section">
-                    <h3 class="section-title">Træningszoner</h3>
-                    <div class="form-grid-three">
-                        <div class="input-group"><label>Puls Zoner</label><input type="text" id="hrZone1" placeholder="Zone 1"><input type="text" id="hrZone2" placeholder="Zone 2"><input type="text" id="hrZone3" placeholder="Zone 3"><input type="text" id="hrZone4" placeholder="Zone 4"><input type="text" id="hrZone5" placeholder="Zone 5"></div>
-                        <div class="input-group"><label>Power Zoner (Watt)</label><input type="text" id="powerZone1" placeholder="Zone 1"><input type="text" id="powerZone2" placeholder="Zone 2"><input type="text" id="powerZone3" placeholder="Zone 3"><input type="text" id="powerZone4" placeholder="Zone 4"><input type="text" id="powerZone5" placeholder="Zone 5"></div>
-                        <div class="input-group"><label>Pace Zoner (min/km)</label><input type="text" id="paceZone1" placeholder="Zone 1"><input type="text" id="paceZone2" placeholder="Zone 2"><input type="text" id="paceZone3" placeholder="Zone 3"><input type="text" id="paceZone4" placeholder="Zone 4"><input type="text" id="paceZone5" placeholder="Zone 5"></div>
+                    <div class="input-group">
+                        <label>Beregnet Alder</label>
+                        <p id="calculatedAge" class="mt-2 text-lg font-semibold text-slate-700">-</p>
                     </div>
-                </div>
-                <div class="form-section">
-                    <h3 class="section-title">Erfaring</h3>
-                    <div class="input-group"><label for="runnerExperience">Beskriv din erfaring med trail/ultra</label><textarea id="runnerExperience" class="data-input" rows="4"></textarea><p class="help-text">Denne tekst kan bruges af AI'en til at generere bedre planer.</p></div>
-                </div>
-                <div class="form-section">
-                    <h3 class="section-title">Forbindelser</h3>
-                    <div id="stravaStatus" class="text-slate-600">Ikke forbundet.</div>
-                    <button id="connectStravaBtn" class="mt-4 bg-orange-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-orange-600 transition-colors">
-                        Forbind med Strava
-                    </button>
-                </div>
-                <div class="form-section">
-                    <h3 class="section-title">Profil Håndtering</h3>
-                    <div class="profile-buttons">
-                        <button id="saveProfileBtn">Gem Profil i Database</button>
-                        <button id="exportProfileBtn">Eksporter Profil til Fil</button>
-                        <button id="loadProfileBtn">Importer Profil fra Fil</button>
-                        <input type="file" id="profileFileInput" accept=".json" style="display: none;">
+                    <div class="input-group">
+                        <label for="profilePictureInput">Profilbillede</label>
+                        <input type="file" id="profilePictureInput" accept="image/*" class="mt-1">
+                        <img id="profilePicturePreview" src="" class="mt-2 h-24 w-24 rounded-full object-cover" style="display: none;">
+                    </div>
+                    <div class="input-group">
+                        <label for="runnerWeight">Vægt (kg)</label>
+                        <input type="number" step="0.1" id="runnerWeight" class="data-input">
+                    </div>
+                    <div class="input-group">
+                        <label for="runnerHeight">Højde (cm)</label>
+                        <input type="number" id="runnerHeight" class="data-input">
                     </div>
                 </div>
             </div>
-        </section>
+
+            <div class="form-section">
+                <h3 class="section-title">Fysiologiske Data</h3>
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label for="restingHR">Hvilepuls</label>
+                        <input type="number" id="restingHR" class="data-input">
+                        <p class="help-text">Din gennemsnitlige hvilepuls målt om morgenen.</p>
+                    </div>
+                    <div class="input-group">
+                        <label for="maxHR">Max Puls</label>
+                        <input type="number" id="maxHR" class="data-input">
+                        <p class="help-text">Din højest målte puls under maksimal anstrengelse.</p>
+                    </div>
+                    <div class="input-group">
+                        <label for="criticalPower">Critical Power (Watt)</label>
+                        <input type="number" id="criticalPower" class="data-input">
+                        <p class="help-text">Din tærskel-watt, ofte estimeret fra en test.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3 class="section-title">Træningszoner</h3>
+                <div class="form-grid-three">
+                    <div class="input-group">
+                        <label>Puls Zoner</label>
+                        <input type="text" id="hrZone1" placeholder="Zone 1"><input type="text" id="hrZone2" placeholder="Zone 2"><input type="text" id="hrZone3" placeholder="Zone 3"><input type="text" id="hrZone4" placeholder="Zone 4"><input type="text" id="hrZone5" placeholder="Zone 5">
+                    </div>
+                    <div class="input-group">
+                        <label>Power Zoner (Watt)</label>
+                        <input type="text" id="powerZone1" placeholder="Zone 1"><input type="text" id="powerZone2" placeholder="Zone 2"><input type="text" id="powerZone3" placeholder="Zone 3"><input type="text" id="powerZone4" placeholder="Zone 4"><input type="text" id="powerZone5" placeholder="Zone 5">
+                    </div>
+                    <div class="input-group">
+                        <label>Pace Zoner (min/km)</label>
+                        <input type="text" id="paceZone1" placeholder="Zone 1"><input type="text" id="paceZone2" placeholder="Zone 2"><input type="text" id="paceZone3" placeholder="Zone 3"><input type="text" id="paceZone4" placeholder="Zone 4"><input type="text" id="paceZone5" placeholder="Zone 5">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3 class="section-title">Erfaring</h3>
+                <div class="input-group">
+                    <label for="runnerExperience">Beskriv din erfaring med trail/ultra</label>
+                    <textarea id="runnerExperience" class="data-input" rows="4"></textarea>
+                    <p class="help-text">Denne tekst kan bruges af AI'en til at generere bedre planer.</p>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3 class="section-title">Forbindelser</h3>
+                <div id="stravaStatus" class="text-slate-600">Ikke forbundet.</div>
+                <button id="connectStravaBtn" class="mt-4 btn btn-strava">Forbind med Strava</button>
+                <button id="disconnectStravaBtn" class="mt-2 btn btn-danger" style="display: none;">Frakobl Strava</button>
+            </div>
+            
+            <div class="form-section">
+                <h3 class="section-title">Profil Håndtering</h3>
+                <div class="profile-buttons">
+                    <button id="saveProfileBtn" class="btn btn-primary">Gem Profil i Database</button>
+                    <button id="exportProfileBtn" class="btn btn-secondary">Eksporter Profil til Fil</button>
+                    <button id="loadProfileBtn" class="btn btn-secondary">Importer Profil fra Fil</button>
+                    <input type="file" id="profileFileInput" accept=".json" style="display: none;">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 
         <!-- Kalender -->
 <section id="kalender" class="page">
