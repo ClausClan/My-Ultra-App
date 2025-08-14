@@ -15,7 +15,7 @@ function estimateTssFromPlan(planText) {
     if (text.includes('a-mål')) return 150;
     if (text.includes('b-mål')) return 120;
     if (text.includes('c-mål')) return 90;
-    if (text.includes('hvile') || text.includes('restitution')) return 15;
+    //if (text.includes('hvile') || text.includes('restitution')) return 15;
 
     let durationInMinutes = 0;
     // Tjek for varighed i timer (f.eks. "2t", "1.5 t")
