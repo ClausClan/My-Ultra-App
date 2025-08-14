@@ -137,7 +137,7 @@ function renderPlanTimelineChart() {
 const planText = day.plan.toLowerCase();
 
 // Betingelsen for at tegne en streg er korrekt
-if (planText.includes('a-mål') || planText.includes('b-mål') || planText.includes('c-mål')) {
+if (planText.startsWith('a-mål') || planText.includes('b-mål') || planText.includes('c-mål')) {
     
     let borderColor = '#facc15'; // Default for C-Mål
     let labelContent = 'C-Mål';   // Default label for C-Mål
