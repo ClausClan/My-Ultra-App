@@ -1,4 +1,5 @@
 // planManager.js - FULD VERSION MED DATABASE OG KORREKT VISNING (14. AUGUST 2025)
+import { estimateTssFromPlan } from './utils.js';
 
 let activePlan = [];
 let activePlanName = '';
@@ -7,44 +8,6 @@ let currentWeekIndex = 0;
 let weeks = [];
 
 // --- HJÆLPEFUNKTIONER ---
-function estimateTssFromPlan(planText) {
-    if (!planText) return 0;
-    const text = planText.toLowerCase();
-
-    // Tjek for løb (A, B, C-mål) først
-    if (text.includes('a-mål')) return 150;
-    if (text.includes('b-mål')) return 120;
-    if (text.includes('c-mål')) return 90;
-    if (text.includes('hvile') || text.includes('restitution')) return 15;
-
-    let durationInMinutes = 0;
-    // Tjek for varighed i timer (f.eks. "2t", "1.5 t")
-    const hourMatch = text.match(/(\d+(\.\d+)?)\s*t/);
-    if (hourMatch) {
-        durationInMinutes = parseFloat(hourMatch[1]) * 60;
-    } else {
-        // Hvis ikke timer, tjek for minutter (f.eks. "90 min", "90min")
-        const minMatch = text.match(/(\d+)\s*min/);
-        if (minMatch) {
-            durationInMinutes = parseInt(minMatch[1], 10);
-        }
-    }
-
-    // Baseret på din mere videnskabelige model
-    let baseTssPerHour = 50; // Default for "andet"
-    if (text.includes('langtur')) baseTssPerHour = 65;
-    if (text.includes('tempo') || text.includes('rpe 7-8')) baseTssPerHour = 90;
-    if (text.includes('bakke') || text.includes('intervaller')) baseTssPerHour = 105;
-    if (text.includes('let løb') || text.includes('rpe 3-4')) baseTssPerHour = 50;
-    if (text.includes('styrke')) baseTssPerHour = 35;
-
-    if (durationInMinutes > 0) {
-        return Math.round((baseTssPerHour / 60) * durationInMinutes);
-    }
-    
-    // Fallback hvis ingen varighed er specificeret (returnerer bare base-tss for 1 time)
-    return baseTssPerHour;
-}
 
 function getWorkoutDetails(planText) {
     const text = planText.toLowerCase();

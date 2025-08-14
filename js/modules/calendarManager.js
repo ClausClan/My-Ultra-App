@@ -330,3 +330,7 @@ export async function initializeCalendar() {
         }
     });
 }
+
+export function getDailyLogs() {
+    return allLogs;
+}

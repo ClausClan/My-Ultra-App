@@ -1,5 +1,8 @@
 import { getActivePlan } from './planManager.js';
+import { getDailyLogs } from './calendarManager.js';
+import { estimateTssFromPlan } from './utils.js';
 
+// Globale variabler til at holde styr på graferne
 let performanceChart = null;
 let complianceChart = null;
 let raceReadinessChart = null;
@@ -24,30 +27,6 @@ function getWeekNumberForDisplay(d) {
     return weekNo;
 }
 
-function estimateTssFromPlan(planText) {
-    if (!planText) return 0;
-    const text = planText.toLowerCase();
-    if (text.includes('a-mål')) return 150;
-    if (text.includes('b-mål')) return 120;
-    if (text.includes('c-mål')) return 90;
-    if (text.includes('generalprøve')) return 130;
-    if (text.includes('hvile') || text.includes('restitution')) return 15;
-    let durationInMinutes = 0;
-    const timeMatch = text.match(/(\d+(\.\d+)?)\s*(t|min)/);
-    if (timeMatch) {
-        const value = parseFloat(timeMatch[1]);
-        durationInMinutes = timeMatch[3] === 't' ? value * 60 : value;
-    }
-    let baseTssPerHour = 50;
-    if (text.includes('langtur')) baseTssPerHour = 65;
-    if (text.includes('tempo') || text.includes('rpe 7-8')) baseTssPerHour = 90;
-    if (text.includes('bakke') || text.includes('intervaller')) baseTssPerHour = 105;
-    if (text.includes('let løb') || text.includes('rpe 3-4')) baseTssPerHour = 50;
-    if (text.includes('styrke')) baseTssPerHour = 35;
-    if (durationInMinutes > 0) return Math.round((baseTssPerHour / 60) * durationInMinutes);
-    return baseTssPerHour;
-}
-
 function calculateActualTss(logData) {
     if (!logData) return null;
     if (logData.pte && parseFloat(logData.pte) > 0) {
@@ -62,75 +41,125 @@ function calculateActualTss(logData) {
 
 // --- RENDER FUNCTIONS ---
 
-function renderPerformanceChart() {
+// --- HOVEDFUNKTION TIL AT TEGNE ALLE GRAFER ---
+
+async function renderAllAnalyseCharts() {
+    // Hent alle de nødvendige data
     const activePlan = getActivePlan();
+    const allLogs = getDailyLogs();
+    
+    // Hent profilen for at få start-værdier
+    let userProfile = {};
+    try {
+        const response = await fetch('/api/get-profile');
+        if (response.ok) userProfile = await response.json();
+    } catch (error) {
+        console.error("Kunne ikke hente profil til analyse:", error);
+    }
+    
+    // Kald funktionerne til at tegne hver enkelt graf
+    renderPerformanceChart(allLogs, activePlan, userProfile);
+    // Her kan vi tilføje kald til de andre grafer senere
+    // renderComplianceChart(allLogs, activePlan);
+    // renderHrvTrendChart(allLogs);
+}
+
+
+// --- GRAF-SPECIFIKKE FUNKTIONER ---
+
+function renderPerformanceChart(allLogs, activePlan, userProfile) {
     const ctx = document.getElementById('performanceChart')?.getContext('2d');
     if (!ctx) return;
     if (performanceChart) performanceChart.destroy();
-
     if (!activePlan || activePlan.length === 0) {
-        ctx.fillText("Ingen aktiv plan fundet.", ctx.canvas.width / 2, 20);
+        // Håndter tom tilstand
         return;
     }
 
-    const today = new Date().toISOString().split('T')[0];
-    const raceGoals = [];
-
-    const hybridTssSeries = activePlan.map((day) => {
-        const planText = day.plan.toLowerCase();
-        if (planText.startsWith('a-mål') || planText.startsWith('b-mål') || planText.startsWith('c-mål')) {
-            let borderColor = '#facc15';
-            if (planText.startsWith('a-mål')) borderColor = '#e11d48';
-            if (planText.startsWith('b-mål')) borderColor = '#f97316';
-            raceGoals.push({ date: day.date, label: day.plan.split(':')[0], borderColor: borderColor });
-        }
-        if (day.date <= today) {
-            const logData = JSON.parse(localStorage.getItem(`log-${day.date}`));
-            const actualTss = calculateActualTss(logData);
-            return actualTss !== null ? actualTss : estimateTssFromPlan(day.plan);
-        }
-        return estimateTssFromPlan(day.plan);
-    });
+    // Få start-værdier fra profilen, med 0 som fallback
+    let ctl = userProfile?.startingCtl || 0;
+    let atl = userProfile?.startingAtl || 0;
 
     const CTL_CONST = 42, ATL_CONST = 7;
-    let ctl = 0, atl = 0;
     const ctlData = [], atlData = [], tsbData = [];
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Byg en komplet datakalender fra starten af planen
+    const startDate = new Date(activePlan[0].date);
+    const endDate = new Date(activePlan[activePlan.length - 1].date);
+    
+    for (let d = startDate; d <= endDate; d.setDate(d.getDate() + 1)) {
+        const dateKey = formatDateKey(d);
+        let tss = 0;
 
-    activePlan.forEach((day, index) => {
-        const tss = hybridTssSeries[index];
+        // Byg hybrid-TSS: Faktisk data før i dag, planlagt data efter i dag
+        if (dateKey < today) {
+            const logForDay = allLogs.find(log => log.date === dateKey);
+            tss = calculateActualTss(logForDay);
+        } else {
+            const planForDay = activePlan.find(p => p.date === dateKey);
+            tss = estimateTssFromPlan(planForDay?.plan);
+        }
+        
         ctl += (tss - ctl) / CTL_CONST;
         atl += (tss - atl) / ATL_CONST;
-        ctlData.push({ x: day.date, y: ctl });
-        atlData.push({ x: day.date, y: atl });
-        tsbData.push({ x: day.date, y: ctl - atl });
-    });
+        
+        ctlData.push({ x: dateKey, y: ctl });
+        atlData.push({ x: dateKey, y: atl });
+        tsbData.push({ x: dateKey, y: ctl - atl });
+    }
 
-    const annotations = raceGoals.reduce((acc, goal) => {
-        acc[goal.label] = { type: 'line', xMin: goal.date, xMax: goal.date, borderColor: goal.borderColor, borderWidth: 2, label: { content: goal.label, display: true, position: 'start', font: { weight: 'bold' } } };
-        return acc;
-    }, {});
-    annotations['todayLine'] = { type: 'line', xMin: today, xMax: today, borderColor: '#22c55e', borderWidth: 3, borderDash: [6, 6], label: { content: 'I dag', display: true, position: 'end', yAdjust: -15, font: { weight: 'bold' }, backgroundColor: 'rgba(34, 197, 94, 0.8)', color: 'white', borderRadius: 4, padding: 4 } };
-    
-    const segmentOptions = (color) => ({ segment: { borderColor: ctx => ctx.p1.parsed.x > new Date(today).valueOf() ? color.replace(')', ', 0.5)').replace('rgb', 'rgba') : color, borderDash: ctx => ctx.p1.parsed.x > new Date(today).valueOf() ? [6, 6] : undefined } });
+    // Opsætning af baggrunds-zoner for form
+    const formZones = {
+        peakZone: { yMin: 15, yMax: 25, backgroundColor: 'rgba(250, 204, 21, 0.1)', borderColor: 'transparent', label: { content: 'Peak', display: true, position: 'start', font: { size: 10 } } },
+        freshZone: { yMin: 5, yMax: 15, backgroundColor: 'rgba(34, 197, 94, 0.1)', borderColor: 'transparent', label: { content: 'Frisk', display: true, position: 'start', font: { size: 10 } } },
+    };
 
     performanceChart = new Chart(ctx, {
         type: 'line',
         data: {
             datasets: [
-                { label: 'Fitness (CTL)', data: ctlData, borderColor: '#0284c7', borderWidth: 3, pointRadius: 0, tension: 0.4, ...segmentOptions('rgb(2, 132, 199)') },
-                { label: 'Træthed (ATL)', data: atlData, borderColor: '#e11d48', borderWidth: 2, pointRadius: 0, tension: 0.4, ...segmentOptions('rgb(225, 29, 72)') },
-                { label: 'Form (TSB)', data: tsbData, borderColor: '#16a34a', borderWidth: 2, pointRadius: 0, tension: 0.4, ...segmentOptions('rgb(22, 163, 74)') }
+                { label: 'Fitness (CTL)', data: ctlData, borderColor: '#0284c7', borderWidth: 2.5, pointRadius: 0 },
+                { label: 'Træthed (ATL)', data: atlData, borderColor: '#ef4444', borderWidth: 1.5, pointRadius: 0 },
+                { label: 'Form (TSB)', data: tsbData, borderColor: '#22c55e', borderWidth: 2, pointRadius: 0 }
             ]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            plugins: { title: { display: true, text: 'Performance Management Chart (Aktuel vs. Planlagt)', font: { size: 18 } }, annotation: { annotations: annotations } },
-            scales: { x: { type: 'time', time: { unit: 'week' } }, y: { title: { display: true, text: 'Score' } } }
+            scales: { x: { type: 'time', time: { unit: 'week' } } },
+            plugins: {
+                annotation: {
+                    annotations: formZones // Indsæt de farvede zoner
+                }
+            }
         }
     });
 }
 
-function renderComplianceChart() {
+function formatDateKey(date) {
+    return date.toISOString().split('T')[0];
+}
+
+// --- INITIALISERING ---
+export function initializeAnalysePage() {
+    // Vi bruger en 'IntersectionObserver' til kun at tegne graferne, når Analyse-siden rent faktisk bliver synlig.
+    // Det sparer ressourcer.
+    const analysePage = document.getElementById('analyse');
+    if (!analysePage) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+            console.log("Analyse-siden er nu synlig. Tegner grafer...");
+            renderAllAnalyseCharts();
+            // Stop med at observere efter første gang for at spare yderligere ressourcer
+            observer.unobserve(analysePage);
+        }
+    }, { threshold: 0.1 });
+
+    observer.observe(analysePage);
+}
+
+/*function renderComplianceChart() {
     const activePlan = getActivePlan();
     const ctx = document.getElementById('complianceChart')?.getContext('2d');
     if (!ctx) return;
@@ -284,7 +313,7 @@ function renderRecoveryCharts() {
             options: { scales: { x: { type: 'time', time: { unit: 'week' } }, y: { title: { display: true, text: 'Hvilepuls (slag/min)' } } } }
         });
     }
-}
+}*/
 
 export function initializeAnalysePage() {
     const analyseButton = document.querySelector('.nav-btn[data-page="analyse"]');
