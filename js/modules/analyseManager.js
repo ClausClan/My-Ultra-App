@@ -51,14 +51,11 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
     const ctx = document.getElementById('performanceChart')?.getContext('2d');
     if (!ctx) return;
     if (performanceChart) performanceChart.destroy();
-    if (!activePlan || activePlan.length === 0) {
-        // Håndter tom tilstand
-        return;
-    }
+    if (!activePlan || activePlan.length === 0) return;
 
     // Få start-værdier fra profilen, med 0 som fallback
-    let ctl = userProfile?.startingCtl || 0;
-    let atl = userProfile?.startingAtl || 0;
+    let ctl = parseFloat(userProfile?.startingCtl) || 0;
+    let atl = parseFloat(userProfile?.startingAtl) || 0;
 
     const CTL_CONST = 42, ATL_CONST = 7;
     const ctlData = [], atlData = [], tsbData = [];
@@ -68,13 +65,16 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
     const startDate = new Date(activePlan[0].date);
     const endDate = new Date(activePlan[activePlan.length - 1].date);
     
-    for (let d = startDate; d <= endDate; d.setDate(d.getDate() + 1)) {
+    // Vi bruger en Map for hurtigt opslag af logs
+    const logsMap = new Map(allLogs.map(log => [log.date, log]));
+
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
         const dateKey = formatDateKey(d);
         let tss = 0;
 
-        // Byg hybrid-TSS: Faktisk data før i dag, planlagt data efter i dag
+        // Byg hybrid-TSS: Faktisk data før i dag, planlagt data fra i dag og frem
         if (dateKey < today) {
-            const logForDay = allLogs.find(log => log.date === dateKey);
+            const logForDay = logsMap.get(dateKey);
             tss = calculateActualTss(logForDay);
         } else {
             const planForDay = activePlan.find(p => p.date === dateKey);
@@ -89,10 +89,24 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
         tsbData.push({ x: dateKey, y: ctl - atl });
     }
 
-    // Opsætning af baggrunds-zoner for form
+    // RETTET: Korrekt opsætning af baggrunds-zoner med type: 'box'
     const formZones = {
-        peakZone: { yMin: 15, yMax: 25, backgroundColor: 'rgba(250, 204, 21, 0.1)', borderColor: 'transparent', label: { content: 'Peak', display: true, position: 'start', font: { size: 10 } } },
-        freshZone: { yMin: 5, yMax: 15, backgroundColor: 'rgba(34, 197, 94, 0.1)', borderColor: 'transparent', label: { content: 'Frisk', display: true, position: 'start', font: { size: 10 } } },
+        peakZone: {
+            type: 'box',
+            yMin: 15,
+            yMax: 25,
+            backgroundColor: 'rgba(250, 204, 21, 0.15)', // Gennemsigtig gul
+            borderColor: 'transparent',
+            label: { content: 'Peak Zone', display: true, position: 'start', color: 'rgba(120, 90, 0, 0.5)', font: { size: 10 } }
+        },
+        freshZone: {
+            type: 'box',
+            yMin: 5,
+            yMax: 15,
+            backgroundColor: 'rgba(34, 197, 94, 0.1)', // Gennemsigtig grøn
+            borderColor: 'transparent',
+            label: { content: 'Friskhed', display: true, position: 'start', color: 'rgba(0, 100, 0, 0.5)', font: { size: 10 } }
+        },
     };
 
     performanceChart = new Chart(ctx, {
@@ -106,10 +120,11 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            scales: { x: { type: 'time', time: { unit: 'week' } } },
+            scales: { x: { type: 'time', time: { unit: 'week' } }, y: { title: { display: true, text: 'Score' } } },
             plugins: {
+                title: { display: true, text: 'Progression: Aktuel vs. Planlagt', font: { size: 16 } },
                 annotation: {
-                    annotations: formZones // Indsæt de farvede zoner
+                    annotations: formZones
                 }
             }
         }
