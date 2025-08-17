@@ -77,7 +77,7 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
         if (planForDay) {
             const planText = planForDay.plan.toLowerCase();
 // --- VORES DETEKTIV-LINJE ---
-            if (planText.includes('mål')) {
+            if (planText.startsWith('mål')) {
                 console.log(`Fandt en måldag (${dateKey}): "${planText}"`);
             }
 // -----------------------------
