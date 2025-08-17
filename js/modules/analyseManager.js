@@ -76,6 +76,11 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
         const planForDay = activePlan.find(p => p.date === dateKey);
         if (planForDay) {
             const planText = planForDay.plan.toLowerCase();
+// --- VORES DETEKTIV-LINJE ---
+            if (planText.includes('mål')) {
+                console.log(`Fandt en måldag (${dateKey}): "${planText}"`);
+            }
+// -----------------------------
             if (planText.startsWith('a-mål:') || planText.startsWith('b-mål:') || planText.startsWith('c-mål:')) {
                 let borderColor = '#facc15', labelContent = 'C-Mål';
                 if (planText.startsWith('a-mål:')) { borderColor = '#e11d48'; labelContent = 'A-Mål'; }
@@ -88,7 +93,7 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
     const formZones = {
         peakZone: { type: 'box', yMin: 15, yMax: 25, backgroundColor: 'rgba(250, 204, 21, 0.15)', borderColor: 'transparent', label: { content: 'Peak', display: true, position: 'start', color: 'rgba(120, 90, 0, 0.5)', font: { size: 10 } } },
         freshZone: { type: 'box', yMin: 5, yMax: 15, backgroundColor: 'rgba(34, 197, 94, 0.1)', borderColor: 'transparent', label: { content: 'Friskhed', display: true, position: 'start', color: 'rgba(0, 100, 0, 0.5)', font: { size: 10 } } },
-        ProgressZone: { type: 'box', yMin: -10, yMax: -30, backgroundColor: 'rgba(182, 90, 15, 0.1)', borderColor: 'transparent', label: { content: 'Progression', display: true, position: 'start', color: 'rgba(0, 100, 0, 0.5)', font: { size: 10 } } },    
+        ProgressZone: { type: 'box', yMin: -30, yMax: -10, backgroundColor: 'rgba(182, 90, 15, 0.1)', borderColor: 'transparent', label: { content: 'Progression', display: true, position: 'start', color: 'rgba(225, 79, 6, 0.88)', font: { size: 10 } } },    
     };
     
     const todayLine = {
@@ -110,7 +115,7 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
             plugins: {
                 title: { display: true, text: 'Progression: Aktuel vs. Planlagt', font: { size: 16 } },
                 annotation: {
-                    annotations: { ...formZones, ...raceAnnotations, ...todayLine }
+                    annotations: { ...formZones, ...raceAnnotations, ...todayLine, ...ProgressZone }
                 }
             }
         }
