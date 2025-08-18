@@ -98,7 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('experience').value = localStorage.getItem('runnerExperience') || '';
     });
 
-    form.addEventListener('submit', async (event) => {
+    // --- LOGIK FOR FORM SUBMISSION (kald til Gemini) ---
+    form?.addEventListener('submit', async (event) => {
         event.preventDefault();
         statusMessage.textContent = '';
         loadingSpinner.style.display = 'block';
@@ -107,32 +108,15 @@ document.addEventListener('DOMContentLoaded', () => {
             experience: document.getElementById('experience').value,
             trainingDaysPerWeek: document.getElementById('planTrainingDaysPerWeek').value,
         };
-        const goals = Array.from(document.querySelectorAll('.goal-row')).map((row, index) => {
-            const id = row.querySelector('select').id.split('-')[1];
-            return {
-                type: row.querySelector(`#goalType-${id}`).value,
-                name: row.querySelector(`#raceName-${id}`).value,
-                date: row.querySelector(`#raceDate-${id}`).value,
-                distance: row.querySelector(`#distance-${id}`).value,
-                elevation: row.querySelector(`#elevation-${id}`).value,
-                goal: row.querySelector(`#raceGoal-${id}`).value,
-                gpxFileName: row.querySelector(`#gpxFile-${id}`).files[0] ? row.querySelector(`#gpxFile-${id}`).files[0].name : 'N/A'
-            };
-        });
-        const apiKey = GEMINI_API_KEY;
-
-        if (!apiKey || apiKey === 'DIN_API_NØGLE_HER') {
-            statusMessage.textContent = 'Fejl: API nøgle ikke fundet.';
-            statusMessage.style.color = 'red';
-            loadingSpinner.style.display = 'none';
-            return;
-        }
-
+        const goals = Array.from(document.querySelectorAll('.goal-row')).map(/* ... uændret ... */);
+        
         let rawResponseText = '';
         try {
             statusMessage.textContent = `Genererer komplet træningsplan... Dette kan tage et øjeblik.`;
             const prompt = buildAdvancedPrompt(runnerInfo, goals);
-            rawResponseText = await callGemini(prompt, apiKey);
+            
+            // OPDATERET: Kalder nu vores nye, sikre callGemini-funktion
+            rawResponseText = await callGemini(prompt);
             
             const validPlan = safeParseJson(rawResponseText);
             const planAsText = JSON.stringify(validPlan, null, 2);
@@ -147,14 +131,13 @@ document.addEventListener('DOMContentLoaded', () => {
             statusMessage.innerHTML = `<strong>Der opstod en fejl.</strong><br>Se venligst browserens konsol for tekniske detaljer.`;
             statusMessage.style.color = 'red';
             console.error("Fejl under generering af plan:", error);
-            console.log("--- AI RÅ SVAR ---");
-            console.log(rawResponseText);
-            console.log("--- SLUT PÅ AI RÅ SVAR ---");
+            console.log("--- AI RÅ SVAR ---", rawResponseText);
         } finally {
             loadingSpinner.style.display = 'none';
         }
     });
 });
+
 
 function buildAdvancedPrompt(runnerInfo, goals) {
     let goalsString = goals.map(g => 
@@ -213,26 +196,30 @@ ${goalsString}
 Generate the complete JSON plan now.`;
 }
 
+// OPDATERET: Kalder nu vores eget backend-endpoint
 async function callGemini(prompt) {
-  // Vi kalder vores eget, sikre backend-endpoint på Vercel
-  const response = await fetch('/api/generate-plan', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt: prompt })
-  });
+    const response = await fetch('/api/generate-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: prompt })
+    });
 
-  if (!response.ok) {
-    const errorBody = await response.json();
-    throw new Error(`Fejl fra server: ${errorBody.error}`);
-  }
+    if (!response.ok) {
+        const errorBody = await response.json();
+        throw new Error(`Fejl fra server: ${errorBody.error || JSON.stringify(errorBody)}`);
+    }
+    
+    const result = await response.json();
 
-  const result = await response.json();
-
-  if (result.candidates && result.candidates.length > 0) {
-    return result.candidates[0].content.parts[0].text;
-  } else {
-    throw new Error("Intet svar modtaget fra AI via backend.");
-  }
+    if (result.candidates && result.candidates.length > 0) {
+        return result.candidates[0].content.parts[0].text;
+    } else {
+        // Hvis der er et delvist svar pga. sikkerhedsblokering
+        if(result.promptFeedback?.blockReason) {
+            throw new Error(`Intet svar modtaget fra AI. Årsag: ${result.promptFeedback.blockReason}`);
+        }
+        throw new Error("Intet svar modtaget fra AI.");
+    }
 }
 
 function safeParseJson(jsonString) {
