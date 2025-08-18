@@ -108,7 +108,17 @@ document.addEventListener('DOMContentLoaded', () => {
             experience: document.getElementById('experience').value,
             trainingDaysPerWeek: document.getElementById('planTrainingDaysPerWeek').value,
         };
-        const goals = Array.from(document.querySelectorAll('.goal-row')).map(/* ... uændret ... */);
+        const goals = Array.from(document.querySelectorAll('.goal-row')).map((row) => {
+        const id = row.querySelector('select').id.split('-')[1];
+        return {
+            type: row.querySelector(`#goalType-${id}`).value,
+            name: row.querySelector(`#raceName-${id}`).value,
+            date: row.querySelector(`#raceDate-${id}`).value,
+            distance: row.querySelector(`#distance-${id}`).value,
+            elevation: row.querySelector(`#elevation-${id}`).value,
+            goal: row.querySelector(`#raceGoal-${id}`).value,
+            };
+        });
         
         let rawResponseText = '';
         try {
