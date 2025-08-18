@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   }
 
   const userPrompt = req.body.prompt;
-  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${geminiApiKey}`;
   const payload = {
     contents: [{ parts: [{ text: userPrompt }] }]
   };
