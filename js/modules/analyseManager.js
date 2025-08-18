@@ -167,23 +167,39 @@ function renderComplianceChart(allLogs, activePlan) {
 
     const weeklyData = {};
 
+    // Udfyld med planlagte data
     activePlan.forEach(day => {
         const weekStart = getStartOfWeekKey(new Date(day.date));
         if (!weeklyData[weekStart]) weeklyData[weekStart] = { planned: 0, actual: 0 };
         weeklyData[weekStart].planned += estimateTssFromPlan(day.plan);
     });
 
+    // Udfyld med faktiske data
     allLogs.forEach(log => {
         const weekStart = getStartOfWeekKey(new Date(log.date));
-        if (weeklyData[weekStart]) {
+        if (weeklyData[weekStart]) { // Sørg for kun at tilføje, hvis ugen er i planen
             weeklyData[weekStart].actual += calculateActualTss(log);
         }
     });
 
-    const labels = Object.keys(weeklyData).sort().slice(-8); // Vis de sidste 8 uger
+    // --- NY LOGIK TIL AT VÆLGE DE SENESTE 8 UGER ---
+    const allWeeksSorted = Object.keys(weeklyData).sort();
+    const today = new Date();
+    
+    // Find alle uger, der er startet op til og med i dag
+    const pastAndCurrentWeeks = allWeeksSorted.filter(week => new Date(week) <= today);
+    
+    // Vælg de sidste 8 af disse uger
+    const labels = pastAndCurrentWeeks.slice(-8); 
+    // ------------------------------------------------
+
     const plannedTss = labels.map(week => weeklyData[week].planned);
     const actualTss = labels.map(week => weeklyData[week].actual);
-    const weekLabels = labels.map(week => `Uge ${new Date(week).getWeek()}`);
+    // Gør uge-etiketterne mere læselige
+    const weekLabels = labels.map(week => {
+        const date = new Date(week);
+        return `Uge ${date.getWeek()}`;
+    });
 
     complianceChart = new Chart(ctx, {
         type: 'bar',
@@ -194,21 +210,23 @@ function renderComplianceChart(allLogs, activePlan) {
                 { label: 'Faktisk TSS', data: actualTss, backgroundColor: 'rgba(75, 192, 192, 0.8)' }
             ]
         },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            scales: { y: { beginAtZero: true, title: { display: true, text: 'Samlet TSS' } } }
+        }
     });
 }
 
-// FORSLAG TIL OPDATERING AF renderRaceReadinessChart i analyseManager.js
-
+// renderRaceReadinessChart
 function renderRaceReadinessChart(activePlan) {
     const ctx = document.getElementById('raceReadinessChart')?.getContext('2d');
     if (!ctx) return;
     if (raceReadinessChart) raceReadinessChart.destroy();
     if (!activePlan || activePlan.length === 0) return;
 
-    // OPDATERET: Find det første kommende A, B, eller C-mål
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Sæt til midnat for præcis sammenligning
+    today.setHours(0, 0, 0, 0);
 
     const nextGoal = activePlan.find(day => {
         const planText = day.plan.toLowerCase().trim();
@@ -216,30 +234,33 @@ function renderRaceReadinessChart(activePlan) {
         return isFutureOrToday && (planText.startsWith('a-mål:') || planText.startsWith('b-mål:') || planText.startsWith('c-mål:'));
     });
 
-    // Hvis der ikke findes et kommende mål, skal grafen ikke tegnes
     if (!nextGoal) {
-        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // Ryd lærredet
-        // Du kan eventuelt tilføje en besked her
+        if(ctx.canvas) ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         return;
     }
 
-    // Resten af logikken til at beregne TSB er den samme
     let ctl = 0, atl = 0;
     const tsbData = [];
     activePlan.forEach(day => {
         const tss = estimateTssFromPlan(day.plan);
         ctl += (tss - ctl) / 42;
         atl += (tss - atl) / 7;
-        // Vi gemmer kun data frem til og med måldatoen
         if (new Date(day.date) <= new Date(nextGoal.date)) {
             tsbData.push({ x: day.date, y: ctl - atl });
         }
     });
     
-    // Vis f.eks. de sidste 28 dage op til målet
     const taperStartDate = new Date(nextGoal.date);
     taperStartDate.setDate(taperStartDate.getDate() - 28);
     const taperTsbData = tsbData.filter(d => new Date(d.x) >= taperStartDate);
+
+    // Definition af alle tre zoner
+    const allZones = {
+        peakZone: { type: 'box', yMin: 15, yMax: 25, backgroundColor: 'rgba(250, 204, 21, 0.15)', borderColor: 'transparent', label: { content: 'Peak', display: true, position: 'start', color: 'rgba(120, 90, 0, 0.5)', font: { size: 10 } } },
+        freshZone: { type: 'box', yMin: 5, yMax: 15, backgroundColor: 'rgba(34, 197, 94, 0.1)', borderColor: 'transparent', label: { content: 'Friskhed', display: true, position: 'start', color: 'rgba(0, 100, 0, 0.5)', font: { size: 10 } } },
+        ProgressZone: { type: 'box', yMin: -30, yMax: -10, backgroundColor: 'rgba(182, 90, 15, 0.1)', borderColor: 'transparent', label: { content: 'Progression', display: true, position: 'start', color: 'rgba(225, 79, 6, 0.88)', font: { size: 10 } } },
+        raceDay: { type: 'line', xMin: nextGoal.date, xMax: nextGoal.date, borderColor: '#ef4444', borderWidth: 2, label: { content: 'Mål', display: true } }
+    };
 
     raceReadinessChart = new Chart(ctx, {
         type: 'line',
@@ -257,11 +278,9 @@ function renderRaceReadinessChart(activePlan) {
             scales: { x: { type: 'time', time: { unit: 'day' } } },
             plugins: {
                 title: { display: true, text: `Formtopning mod: ${nextGoal.plan}` },
+                // OPDATERET: Viser nu alle zoner
                 annotation: {
-                    annotations: {
-                        peakZone: { type: 'box', yMin: 15, yMax: 25, backgroundColor: 'rgba(250, 204, 21, 0.15)' },
-                        raceDay: { type: 'line', xMin: nextGoal.date, xMax: nextGoal.date, borderColor: '#ef4444', borderWidth: 2, label: { content: 'Mål', display: true } }
-                    }
+                    annotations: allZones
                 }
             }
         }
