@@ -97,7 +97,10 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
         if (planForDay && planForDay.plan) {
             const planText = planForDay.plan.trim().toLowerCase();
             if (planText.startsWith('a-mål:') || planText.startsWith('b-mål:') || planText.startsWith('c-mål:')) {
-                // ... (mål-genkendelse er uændret) ...
+                let borderColor = '#facc15', labelContent = 'C-Mål';
+                if (planText.startsWith('a-mål:')) { borderColor = '#e11d48'; labelContent = 'A-Mål'; }
+                else if (planText.startsWith('b-mål:')) { borderColor = '#f97316'; labelContent = 'B-Mål'; }
+                raceAnnotations[labelContent + '_' + dateKey] = { type: 'line', xMin: dateKey, xMax: dateKey, borderColor, borderWidth: 2, label: { content: labelContent, display: true, position: 'start', yAdjust: -10 } };
             }
         }
     }
