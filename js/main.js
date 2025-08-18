@@ -267,7 +267,6 @@ function setupEventListeners() {
 }
 
 
-// --- APPENS "MOTOR" (Nu asynkron) ---
 async function main() {
     const hiddenInput = document.createElement('input');
     hiddenInput.type = 'hidden';
@@ -277,11 +276,15 @@ async function main() {
     // Trin 1: Hent al kritisk data fra databasen FØRST
     await loadActivePlan();
     await loadProfileData();
+    // OPDATERET: Vi venter på kalender-initialiseringen og fanger de returnerede logs
+    const allLogs = await initializeCalendar();
 
-    // Trin 2: Når data er hentet, initialiser alle dele af appen
+    // Trin 2: Når data er hentet, initialiser resten
     setupEventListeners();
-    initializeCalendar();
-    updateHomePageDashboard();
+    
+    // OPDATERET: Vi giver de hentede logs direkte til dashboardet
+    updateHomePageDashboard(allLogs);
+    
     initializePlanPage();
     initializeProfilePageCalculations();
     updateHomepageStatus();
