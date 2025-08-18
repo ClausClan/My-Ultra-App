@@ -19,6 +19,13 @@ function formatDateKey(date) {
     return date.toISOString().split('T')[0];
 }
 
+function getStartOfWeekKey(d) {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(date.setDate(diff)).toISOString().split('T')[0];
+}
+
 // --- HOVEDFUNKTION TIL AT TEGNE ALLE GRAFER ---
 async function renderAllAnalyseCharts() {
     const activePlan = getActivePlan();
@@ -33,6 +40,9 @@ async function renderAllAnalyseCharts() {
     }
     
     renderPerformanceChart(allLogs, activePlan, userProfile);
+    renderComplianceChart(allLogs, activePlan);
+    renderRaceReadinessChart(activePlan);
+    renderRecoveryTrendCharts(allLogs);
 }
 
 // --- GRAF-SPECIFIKKE FUNKTIONER ---
@@ -150,6 +160,153 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
     });
 }
 
+function renderComplianceChart(allLogs, activePlan) {
+    const ctx = document.getElementById('complianceChart')?.getContext('2d');
+    if (!ctx) return;
+    if (complianceChart) complianceChart.destroy();
+
+    const weeklyData = {};
+
+    activePlan.forEach(day => {
+        const weekStart = getStartOfWeekKey(new Date(day.date));
+        if (!weeklyData[weekStart]) weeklyData[weekStart] = { planned: 0, actual: 0 };
+        weeklyData[weekStart].planned += estimateTssFromPlan(day.plan);
+    });
+
+    allLogs.forEach(log => {
+        const weekStart = getStartOfWeekKey(new Date(log.date));
+        if (weeklyData[weekStart]) {
+            weeklyData[weekStart].actual += calculateActualTss(log);
+        }
+    });
+
+    const labels = Object.keys(weeklyData).sort().slice(-8); // Vis de sidste 8 uger
+    const plannedTss = labels.map(week => weeklyData[week].planned);
+    const actualTss = labels.map(week => weeklyData[week].actual);
+    const weekLabels = labels.map(week => `Uge ${new Date(week).getWeek()}`);
+
+    complianceChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: weekLabels,
+            datasets: [
+                { label: 'Planlagt TSS', data: plannedTss, backgroundColor: 'rgba(54, 162, 235, 0.5)' },
+                { label: 'Faktisk TSS', data: actualTss, backgroundColor: 'rgba(75, 192, 192, 0.8)' }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+    });
+}
+
+// FORSLAG TIL OPDATERING AF renderRaceReadinessChart i analyseManager.js
+
+function renderRaceReadinessChart(activePlan) {
+    const ctx = document.getElementById('raceReadinessChart')?.getContext('2d');
+    if (!ctx) return;
+    if (raceReadinessChart) raceReadinessChart.destroy();
+    if (!activePlan || activePlan.length === 0) return;
+
+    // OPDATERET: Find det første kommende A, B, eller C-mål
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Sæt til midnat for præcis sammenligning
+
+    const nextGoal = activePlan.find(day => {
+        const planText = day.plan.toLowerCase().trim();
+        const isFutureOrToday = new Date(day.date) >= today;
+        return isFutureOrToday && (planText.startsWith('a-mål:') || planText.startsWith('b-mål:') || planText.startsWith('c-mål:'));
+    });
+
+    // Hvis der ikke findes et kommende mål, skal grafen ikke tegnes
+    if (!nextGoal) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // Ryd lærredet
+        // Du kan eventuelt tilføje en besked her
+        return;
+    }
+
+    // Resten af logikken til at beregne TSB er den samme
+    let ctl = 0, atl = 0;
+    const tsbData = [];
+    activePlan.forEach(day => {
+        const tss = estimateTssFromPlan(day.plan);
+        ctl += (tss - ctl) / 42;
+        atl += (tss - atl) / 7;
+        // Vi gemmer kun data frem til og med måldatoen
+        if (new Date(day.date) <= new Date(nextGoal.date)) {
+            tsbData.push({ x: day.date, y: ctl - atl });
+        }
+    });
+    
+    // Vis f.eks. de sidste 28 dage op til målet
+    const taperStartDate = new Date(nextGoal.date);
+    taperStartDate.setDate(taperStartDate.getDate() - 28);
+    const taperTsbData = tsbData.filter(d => new Date(d.x) >= taperStartDate);
+
+    raceReadinessChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: 'Forventet Form (TSB)',
+                data: taperTsbData,
+                borderColor: '#22c55e',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { x: { type: 'time', time: { unit: 'day' } } },
+            plugins: {
+                title: { display: true, text: `Formtopning mod: ${nextGoal.plan}` },
+                annotation: {
+                    annotations: {
+                        peakZone: { type: 'box', yMin: 15, yMax: 25, backgroundColor: 'rgba(250, 204, 21, 0.15)' },
+                        raceDay: { type: 'line', xMin: nextGoal.date, xMax: nextGoal.date, borderColor: '#ef4444', borderWidth: 2, label: { content: 'Mål', display: true } }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderRecoveryTrendCharts(allLogs) {
+    const hrvCtx = document.getElementById('hrvTrendChart')?.getContext('2d');
+    const rhrCtx = document.getElementById('rhrTrendChart')?.getContext('2d');
+    if (!hrvCtx || !rhrCtx) return;
+    if (hrvTrendChart) hrvTrendChart.destroy();
+    if (rhrTrendChart) rhrTrendChart.destroy();
+
+    const calculateMovingAverage = (data, windowSize) => {
+        return data.map((_, i, arr) => {
+            const window = arr.slice(Math.max(0, i - windowSize + 1), i + 1);
+            const sum = window.reduce((acc, val) => acc + val.y, 0);
+            return { x: data[i].x, y: sum / window.length };
+        });
+    };
+
+    const hrvData = allLogs.filter(l => l.hrv).map(l => ({ x: l.date, y: l.hrv }));
+    hrvTrendChart = new Chart(hrvCtx, {
+        type: 'line',
+        data: {
+            datasets: [
+                { label: 'Daglig HRV', data: hrvData, borderColor: 'rgba(34, 197, 94, 0.5)', pointRadius: 2 },
+                { label: '7-dages gns.', data: calculateMovingAverage(hrvData, 7), borderColor: '#22c55e', borderWidth: 2, pointRadius: 0 }
+            ]
+        }
+    });
+
+    const rhrData = allLogs.filter(l => l.rhr).map(l => ({ x: l.date, y: l.rhr }));
+    rhrTrendChart = new Chart(rhrCtx, {
+        type: 'line',
+        data: {
+            datasets: [
+                { label: 'Daglig Hvilepuls', data: rhrData, borderColor: 'rgba(54, 162, 235, 0.5)', pointRadius: 2 },
+                { label: '7-dages gns.', data: calculateMovingAverage(rhrData, 7), borderColor: '#36a2eb', borderWidth: 2, pointRadius: 0 }
+            ]
+        }
+    });
+}
+
+
 // --- INITIALISERING ---
 export function initializeAnalysePage() {
     const analysePage = document.getElementById('analyse');
@@ -162,3 +319,12 @@ export function initializeAnalysePage() {
     }, { threshold: 0.1 });
     observer.observe(analysePage);
 }
+
+// Helper til at få ugenummer
+Date.prototype.getWeek = function() {
+  var d = new Date(Date.UTC(this.getFullYear(), this.getMonth(), this.getDate()));
+  var dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+};
