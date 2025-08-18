@@ -48,7 +48,9 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
     const CTL_CONST = 42, ATL_CONST = 7;
     const ctlData = [], atlData = [], tsbData = [];
     const raceAnnotations = {};
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date(); // Hent fuld dato-objekt for præcis sammenligning
+    const todayKey = formatDateKey(today);
+    
     const startDate = new Date(activePlan[0].date);
     const endDate = new Date(activePlan[activePlan.length - 1].date);
     const logsMap = new Map(allLogs.map(log => [log.date, log]));
@@ -57,7 +59,7 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
         const dateKey = formatDateKey(d);
         let tss = 0;
 
-        if (dateKey < today) {
+        if (dateKey < todayKey) {
             const logForDay = logsMap.get(dateKey);
             tss = calculateActualTss(logForDay);
         } else {
@@ -73,13 +75,9 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
         tsbData.push({ x: dateKey, y: ctl - atl });
 
         const planForDay = activePlan.find(p => p.date === dateKey);
-        if (planForDay) {
-            const planText = planForDay.plan.toLowerCase();
-// --- VORES DETEKTIV-LINJE ---
-            if (planText.startsWith('mål')) {
-                console.log(`Fandt en måldag (${dateKey}): "${planText}"`);
-            }
-// -----------------------------
+        if (planForDay && planForDay.plan) {
+            // RETTET: Bruger .trim() for at fjerne skjulte mellemrum
+            const planText = planForDay.plan.trim().toLowerCase();
             if (planText.startsWith('a-mål:') || planText.startsWith('b-mål:') || planText.startsWith('c-mål:')) {
                 let borderColor = '#facc15', labelContent = 'C-Mål';
                 if (planText.startsWith('a-mål:')) { borderColor = '#e11d48'; labelContent = 'A-Mål'; }
@@ -102,15 +100,28 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
         todayLine: { type: 'line', xMin: today, xMax: today, borderColor: '#334155', borderWidth: 2, borderDash: [6, 6], label: { content: 'I dag', display: true, position: 'end', font: { weight: 'bold' } } }
     };
 
-    performanceChart = new Chart(ctx, {
+performanceChart = new Chart(ctx, {
         type: 'line',
         data: {
             datasets: [
-                { label: 'Fitness (CTL)', data: ctlData, borderColor: '#0284c7', borderWidth: 2.5, pointRadius: 0, tension: 0.4 },
-                { label: 'Træthed (ATL)', data: atlData, borderColor: '#ef4444', borderWidth: 1.5, pointRadius: 0, tension: 0.4 },
-                { label: 'Form (TSB)', data: tsbData, borderColor: '#22c55e', borderWidth: 2, pointRadius: 0, tension: 0.4 }
+                { 
+                    label: 'Fitness (CTL)', data: ctlData, borderColor: '#0284c7', borderWidth: 2.5, pointRadius: 0, tension: 0.4,
+                    // NYT: Tilføjet for stiplede linjer
+                    segment: { borderDash: ctx => ctx.p1.parsed.x >= today.valueOf() ? [6, 6] : undefined }
+                },
+                { 
+                    label: 'Træthed (ATL)', data: atlData, borderColor: '#ef4444', borderWidth: 1.5, pointRadius: 0, tension: 0.4,
+                    // NYT: Tilføjet for stiplede linjer
+                    segment: { borderDash: ctx => ctx.p1.parsed.x >= today.valueOf() ? [6, 6] : undefined }
+                },
+                { 
+                    label: 'Form (TSB)', data: tsbData, borderColor: '#22c55e', borderWidth: 2, pointRadius: 0, tension: 0.4,
+                    // NYT: Tilføjet for stiplede linjer
+                    segment: { borderDash: ctx => ctx.p1.parsed.x >= today.valueOf() ? [6, 6] : undefined }
+                }
             ]
         },
+
         options: {
             responsive: true, maintainAspectRatio: false,
             scales: { x: { type: 'time', time: { unit: 'week' } }, y: { title: { display: true, text: 'Score' } } },
