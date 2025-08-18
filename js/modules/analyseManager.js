@@ -2,18 +2,40 @@
 
 import { getActivePlan } from './planManager.js';
 import { getDailyLogs } from './calendarManager.js';
-import { estimateTssFromPlan } from './utils.js';
+import { estimateTssFromPlan } from './utils.js'; // Bruger nu den centrale funktion
 
 let performanceChart = null;
+let complianceChart = null;
+let raceReadinessChart = null;
+let hrvTrendChart = null;
+let rhrTrendChart = null;
 
 // --- HJÆLPEFUNKTIONER ---
-function calculateActualTss(log) { /* ... uændret ... */ }
-function formatDateKey(date) { /* ... uændret ... */ }
+function calculateActualTss(log) {
+    if (log && log.pte) return log.pte * 20;
+    return 0;
+}
+function formatDateKey(date) {
+    return date.toISOString().split('T')[0];
+}
 
 // --- HOVEDFUNKTION TIL AT TEGNE ALLE GRAFER ---
-async function renderAllAnalyseCharts() { /* ... uændret ... */ }
+async function renderAllAnalyseCharts() {
+    const activePlan = getActivePlan();
+    const allLogs = getDailyLogs();
+    
+    let userProfile = {};
+    try {
+        const response = await fetch('/api/get-profile');
+        if (response.ok) userProfile = await response.json();
+    } catch (error) {
+        console.error("Kunne ikke hente profil til analyse:", error);
+    }
+    
+    renderPerformanceChart(allLogs, activePlan, userProfile);
+}
 
-// --- STÆRKT OPDATERET GRAF-FUNKTION ---
+// --- GRAF-SPECIFIKKE FUNKTIONER ---
 function renderPerformanceChart(allLogs, activePlan, userProfile) {
     const ctx = document.getElementById('performanceChart')?.getContext('2d');
     if (!ctx) return;
@@ -117,7 +139,7 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
                     }
                 },
                 annotation: {
-                    annotations: { ...formZones, ...raceAnnotations, ...todayLine }
+                    annotations: { ...formZones, ...raceAnnotations, ...todayLine, ProgressZone }
                 }
             }
         }
