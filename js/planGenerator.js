@@ -5,7 +5,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('plan-form');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const statusMessage = document.getElementById('statusMessage');
+    const fetchProfileBtn = document.getElementById('fetch-profile-btn');
+    const experienceTextarea = document.getElementById('experience');
     let goalCounter = 0;
+
+    // --- LOGIK FOR "HENT PROFIL"-KNAPPEN ---
+    fetchProfileBtn?.addEventListener('click', async () => {
+        fetchProfileBtn.textContent = 'Henter...';
+        fetchProfileBtn.disabled = true;
+        try {
+            const response = await fetch('/api/get-profile');
+            if (!response.ok) {
+                if(response.status === 404 || response.status === 204) {
+                    alert("Ingen profil fundet i databasen. Udfyld din profil på 'Løberdata'-siden først.");
+                } else {
+                    throw new Error('Kunne ikke hente profil fra serveren.');
+                }
+                return;
+            }
+            const profileData = await response.json();
+            if (profileData && profileData.runnerExperience) {
+                experienceTextarea.value = profileData.runnerExperience;
+            } else {
+                alert("Din profil er fundet, men den indeholder endnu ikke en erfaringsbeskrivelse.");
+            }
+        } catch (error) {
+            console.error("Fejl ved hentning af profil:", error);
+            alert("Der opstod en fejl under hentning af din løberprofil.");
+        } finally {
+            fetchProfileBtn.textContent = 'Hent min Løberprofil';
+            fetchProfileBtn.disabled = false;
+        }
+    });
 
     function addGoalRow() {
         goalCounter++;
@@ -151,6 +182,8 @@ The output MUST be a valid JSON array of objects. Do not output anything else.
 4.  **Progressive Overload**
 5.  **Functional Strength**
 6.  **Use the following running workout types: endurance, steady-state, tempo, fartleg and VO2max runs**
+7.  **Always add nesseary recovery week or weeks after last goal race**
+8.  **Always use information on race length and elevation information in af scientific manner in the training plan**
 
 **Runner's Information:**
 ${runnerProfile}
