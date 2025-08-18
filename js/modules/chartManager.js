@@ -9,10 +9,12 @@ function formatDateKey(date) {
 }
 
 export function updateHomePageDashboard(allLogs) {
-    if (!allLogs) return; // Sikkerhedstjek
+    if (!allLogs) {
+        console.warn("chartManager modtog ingen logs at vise.");
+        return; 
+    }
 
     const logsMap = new Map(allLogs.map(log => [log.date, log]));
-
     const labels = [];
     const hrvData = [], rhrData = [], sleepData = [], vo2maxData = [];
 
@@ -36,7 +38,27 @@ export function updateHomePageDashboard(allLogs) {
         }
     });
 
-    function createChart(elementId, chartType, data, title, yAxisLabel, color, extraOptions = {}) { /* ... uændret ... */ }
+    function createChart(elementId, chartType, data, title, yAxisLabel, color, extraOptions = {}) {
+        const ctx = document.getElementById(elementId);
+        if (ctx) {
+            homePageCharts[elementId] = new Chart(ctx.getContext('2d'), {
+                type: chartType,
+                data: {
+                    labels,
+                    datasets: [{ data, backgroundColor: color, borderColor: color, tension: 0.1, pointRadius: 3, pointHoverRadius: 5 }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: title, font: { size: 14 } }
+                    },
+                    scales: { y: { title: { display: true, text: yAxisLabel }, ...extraOptions.yScale } }
+                }
+            });
+        }
+    }
 
     createChart('hrvChart', 'line', hrvData, 'HRV', 'ms', '#27ae60');
     createChart('rhrChart', 'line', rhrData, 'Hvilepuls', 'slag/min', '#2980b9');
