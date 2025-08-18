@@ -3,6 +3,7 @@
 import { getActivePlan } from './planManager.js';
 import { getDailyLogs } from './calendarManager.js';
 import { estimateTssFromPlan } from './utils.js'; // Bruger nu den centrale funktion
+import { formatDateKey } from './utils.js';
 
 let performanceChart = null;
 let complianceChart = null;
@@ -15,9 +16,9 @@ function calculateActualTss(log) {
     if (log && log.pte) return log.pte * 20;
     return 0;
 }
-function formatDateKey(date) {
-    return date.toISOString().split('T')[0];
-}
+//function formatDateKey(date) {
+//    return date.toISOString().split('T')[0];
+//}
 
 function getStartOfWeekKey(d) {
     const date = new Date(d);

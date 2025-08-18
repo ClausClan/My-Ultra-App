@@ -34,3 +34,12 @@ export function estimateTssFromPlan(planText) {
     
     return baseTssPerHour;
 }
+
+export function formatDateKey(date) {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    // getMonth() er 0-baseret, så vi lægger 1 til
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}

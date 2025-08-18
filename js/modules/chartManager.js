@@ -1,12 +1,13 @@
 // chartManager.js - FULD DATABASE-DREVET VERSION (18. AUGUST 2025)
 
 import { getDailyLogs } from './calendarManager.js';
+import { formatDateKey } from './utils.js';
 
 let homePageCharts = {};
 
-function formatDateKey(date) {
-    return date.toISOString().split('T')[0];
-}
+//function formatDateKey(date) {
+//    return date.toISOString().split('T')[0];
+//}
 
 export function updateHomePageDashboard(allLogs) {
     if (!allLogs || allLogs.length === 0) {

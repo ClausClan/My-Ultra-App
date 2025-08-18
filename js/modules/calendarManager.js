@@ -2,6 +2,7 @@
 
 import { getActivePlan } from './planManager.js';
 import { fetchActivities, fetchActivityDetails } from './stravaManager.js';
+import { formatDateKey } from './utils.js';
 
 // --- GLOBALE VARIABLER ---
 let currentDate = new Date();
@@ -25,9 +26,9 @@ function getStartOfWeek(date) {
     return new Date(d.setDate(diff));
 }
 
-function formatDateKey(date) {
-    return date.toISOString().split('T')[0];
-}
+//function formatDateKey(date) {
+//    return date.toISOString().split('T')[0];
+//}
 
 // --- RENDERING AF UI ---
 function renderAll() {
