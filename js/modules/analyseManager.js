@@ -54,6 +54,7 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
     
     const startDate = new Date(activePlan[0].date);
     const endDate = new Date(activePlan[activePlan.length - 1].date);
+    endDate.setHours(12, 0, 0, 0); // Sætter tiden til middag for at undgå tidszone-problemer
     const logsMap = new Map(allLogs.map(log => [log.date, log]));
 
     // RETTET: Sikrere løkke, der garanterer, at sidste dag kommer med
