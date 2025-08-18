@@ -49,7 +49,6 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
     const ctlData = [], atlData = [], tsbData = [];
     const raceAnnotations = {};
     const today = new Date().toISOString().split('T')[0];
-    
     const startDate = new Date(activePlan[0].date);
     const endDate = new Date(activePlan[activePlan.length - 1].date);
     const logsMap = new Map(allLogs.map(log => [log.date, log]));
@@ -90,10 +89,13 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
         }
     }
 
+    const ProgressZone = {
+        type: 'box', yMin: -30, yMax: -10, backgroundColor: 'rgba(182, 90, 15, 0.1)', borderColor: 'transparent',label: { content: 'Progression', display: true, position: 'start', color: 'rgba(225, 79, 6, 0.88)', font: { size: 10 } }
+    };
+
     const formZones = {
         peakZone: { type: 'box', yMin: 15, yMax: 25, backgroundColor: 'rgba(250, 204, 21, 0.15)', borderColor: 'transparent', label: { content: 'Peak', display: true, position: 'start', color: 'rgba(120, 90, 0, 0.5)', font: { size: 10 } } },
         freshZone: { type: 'box', yMin: 5, yMax: 15, backgroundColor: 'rgba(34, 197, 94, 0.1)', borderColor: 'transparent', label: { content: 'Friskhed', display: true, position: 'start', color: 'rgba(0, 100, 0, 0.5)', font: { size: 10 } } },
-        progressZone: { type: 'box', yMin: -30, yMax: -10, backgroundColor: 'rgba(182, 90, 15, 0.1)', borderColor: 'transparent', label: { content: 'Progression', display: true, position: 'start', color: 'rgba(225, 79, 6, 0.88)', font: { size: 10 } } },    
     };
     
     const todayLine = {
@@ -115,7 +117,7 @@ function renderPerformanceChart(allLogs, activePlan, userProfile) {
             plugins: {
                 title: { display: true, text: 'Progression: Aktuel vs. Planlagt', font: { size: 16 } },
                 annotation: {
-                    annotations: { ...formZones, ...raceAnnotations, ...todayLine, ...progressZone }
+                    annotations: { ...formZones, ...raceAnnotations, ...todayLine, ProgressZone}
                 }
             }
         }
