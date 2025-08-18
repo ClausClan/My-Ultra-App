@@ -276,8 +276,7 @@ async function main() {
     // Trin 1: Hent al kritisk data fra databasen FØRST
     await loadActivePlan();
     await loadProfileData();
-    // OPDATERET: Vi venter på kalender-initialiseringen og fanger de returnerede logs
-    const allLogs = await initializeCalendar();
+    const allLogs = await initializeCalendar(); // VENT på data og gem resultatet
 
     // Trin 2: Når data er hentet, initialiser resten
     setupEventListeners();

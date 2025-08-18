@@ -9,7 +9,7 @@ function formatDateKey(date) {
 }
 
 export function updateHomePageDashboard(allLogs) {
-    if (!allLogs) {
+    if (!allLogs || allLogs.length === 0) {
         console.warn("chartManager modtog ingen logs at vise.");
         return; 
     }

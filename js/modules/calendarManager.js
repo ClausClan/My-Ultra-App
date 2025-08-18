@@ -329,6 +329,9 @@ export async function initializeCalendar() {
             syncBtn.disabled = false;
         }
     });
+
+    // NYT: Returner de hentede logs, så andre kan bruge dem
+    return allLogs; 
 }
 
 export function getDailyLogs() {
