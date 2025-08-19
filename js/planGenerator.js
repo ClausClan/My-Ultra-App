@@ -1,13 +1,21 @@
 
 document.addEventListener('DOMContentLoaded', () => {
-    const goalsContainer = document.getElementById('goals-container');
-    const addGoalBtn = document.getElementById('add-goal-btn');
+    // Referencer til alle elementer
     const form = document.getElementById('plan-form');
+    const apiKeyInput = document.getElementById('gemini-api-key');
+    const modelSelect = document.getElementById('ai-model-select');
+    const fetchProfileBtn = document.getElementById('fetch-profile-btn');
+    const addGoalBtn = document.getElementById('add-goal-btn');
+    const goalsContainer = document.getElementById('goals-container');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const statusMessage = document.getElementById('statusMessage');
-    const fetchProfileBtn = document.getElementById('fetch-profile-btn');
-    const experienceTextarea = document.getElementById('experience');
     let goalCounter = 0;
+
+    // Gem/hent nøglen fra sessionStorage
+    apiKeyInput.value = sessionStorage.getItem('userGeminiApiKey') || '';
+    apiKeyInput.addEventListener('input', () => {
+        sessionStorage.setItem('userGeminiApiKey', apiKeyInput.value);
+    });
 
     // --- LOGIK FOR "HENT PROFIL"-KNAPPEN ---
     fetchProfileBtn?.addEventListener('click', async () => {
@@ -91,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
         goalsContainer.appendChild(goalRow);
     }
 
-    addGoalBtn.addEventListener('click', addGoalRow);
+    addGoalBtn?.addEventListener('click', addGoalRow);
     addGoalRow();
 
     document.getElementById('fetch-profile-btn').addEventListener('click', () => {
@@ -103,6 +111,9 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         statusMessage.textContent = '';
         loadingSpinner.style.display = 'block';
+
+        const userApiKey = apiKeyInput.value.trim();
+        const selectedModel = modelSelect.value;
 
         const runnerInfo = {
             experience: document.getElementById('experience').value,
@@ -126,15 +137,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const prompt = buildAdvancedPrompt(runnerInfo, goals);
             
             // OPDATERET: Kalder nu vores nye, sikre callGemini-funktion
-            rawResponseText = await callGemini(prompt);
+            if (userApiKey) {
+                // Hvis brugeren har indtastet en nøgle, kald direkte fra browseren
+                console.log("Bruger personlig API nøgle (Client-side kald)");
+                rawResponseText = await callGeminiClientSide(prompt, userApiKey, selectedModel);
+            } else {
+                // Ellers, brug appens indbyggede backend-kald (fallback)
+                console.log("Bruger appens indbyggede nøgle (Backend-kald)");
+                rawResponseText = await callGeminiBackend(prompt);
+            }
             
             const validPlan = safeParseJson(rawResponseText);
             const planAsText = JSON.stringify(validPlan, null, 2);
+            downloadJSON(planAsText, `traeningsplan.json`);
             
-            const firstRaceName = goals.length > 0 ? goals[0].name : 'traeningsplan';
-            downloadJSON(planAsText, `traeningsplan_${firstRaceName.replace(/\s+/g, '_')}.json`);
-            
-            statusMessage.textContent = `Komplet plan på ${validPlan.length} dage er genereret!`;
+            statusMessage.textContent = `Planen er genereret!`;
             statusMessage.style.color = 'green';
 
         } catch (error) {
@@ -230,6 +247,34 @@ async function callGemini(prompt) {
         }
         throw new Error("Intet svar modtaget fra AI.");
     }
+}
+
+// Kald direkte fra browseren med brugerens nøgle
+async function callGeminiClientSide(prompt, apiKey, model) {
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const payload = {contents: [{ parts: [{ text: userPrompt }] }]};
+    const response = await fetch(apiUrl, { /* ... */ });
+    const result = await response.json();
+    if (!response.ok) throw new Error(`API fejl: ${result?.error?.message || 'Ukendt fejl'}`);
+    if (result.candidates?.[0]) return result.candidates[0].content.parts[0].text;
+    throw new Error("Intet svar fra AI. Det kan være blokeret.");
+}
+
+
+// Kald via vores egen backend (hvis ingen nøgle er indtastet)
+async function callGeminiBackend(prompt) {
+    const response = await fetch('/api/generate-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: prompt })
+    });
+    if (!response.ok) {
+        const errorBody = await response.json();
+        throw new Error(`Fejl fra server: ${errorBody.error || JSON.stringify(errorBody)}`);
+    }
+    const result = await response.json();
+    if (result.candidates?.[0]) return result.candidates[0].content.parts[0].text;
+    throw new Error("Intet svar fra AI via backend.");
 }
 
 function safeParseJson(jsonString) {
