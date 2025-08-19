@@ -147,6 +147,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const userApiKey = apiKeyInput.value.trim();
         const selectedModel = modelSelect.value;
 
+        const userConfirmed = confirm("Bekræft venligst den prompt, der sendes til AI'en:\n\n" + prompt);
+
+        if (!userConfirmed) {
+            statusMessage.textContent = 'Generering afbrudt af bruger.';
+            loadingSpinner.style.display = 'none';
+            return; // Stopper, hvis du trykker "Annuller"
+        }
+
         const runnerInfo = {
             experience: document.getElementById('experience').value,
             trainingDaysPerWeek: document.getElementById('planTrainingDaysPerWeek').value,
