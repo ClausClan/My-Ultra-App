@@ -287,12 +287,20 @@ async function callGemini(prompt) {
 // Kald direkte fra browseren med brugerens nøgle
 async function callGeminiClientSide(prompt, apiKey, model) {
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    const payload = {contents: [{ parts: [{ text: userPrompt }] }]};
-    const response = await fetch(apiUrl, { /* ... */ });
+    
+    // RETTET: Bruger nu 'prompt' i stedet for 'userPrompt'
+    const payload = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { "response_mime_type": "application/json" },
+    };
+
+    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const result = await response.json();
+
     if (!response.ok) throw new Error(`API fejl: ${result?.error?.message || 'Ukendt fejl'}`);
     if (result.candidates?.[0]) return result.candidates[0].content.parts[0].text;
-    throw new Error("Intet svar fra AI. Det kan være blokeret.");
+
+    throw new Error("Intet svar fra AI. Det kan være blokeret af sikkerhedsfiltre.");
 }
 
 
