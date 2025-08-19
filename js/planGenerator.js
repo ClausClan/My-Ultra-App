@@ -5,11 +5,43 @@ document.addEventListener('DOMContentLoaded', () => {
     const apiKeyInput = document.getElementById('gemini-api-key');
     const modelSelect = document.getElementById('ai-model-select');
     const fetchProfileBtn = document.getElementById('fetch-profile-btn');
+    const experienceTextarea = document.getElementById('experience');
     const addGoalBtn = document.getElementById('add-goal-btn');
     const goalsContainer = document.getElementById('goals-container');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const statusMessage = document.getElementById('statusMessage');
     let goalCounter = 0;
+
+    // --- NY CENTRAL FUNKTION TIL AT HENTE PROFIL ---
+    async function loadProfileForGenerator() {
+        if (fetchProfileBtn) {
+            fetchProfileBtn.textContent = 'Henter...';
+            fetchProfileBtn.disabled = true;
+        }
+        try {
+            const response = await fetch('/api/get-profile');
+            if (!response.ok) {
+                if (response.status === 404 || response.status === 204) {
+                    console.log("Ingen profil fundet i databasen.");
+                } else {
+                    throw new Error('Kunne ikke hente profil fra serveren.');
+                }
+                return;
+            }
+            const profileData = await response.json();
+            if (profileData && profileData.runnerExperience) {
+                experienceTextarea.value = profileData.runnerExperience;
+            }
+        } catch (error) {
+            console.error("Fejl ved hentning af profil:", error);
+            alert("Kunne ikke hente din løberprofil.");
+        } finally {
+            if (fetchProfileBtn) {
+                fetchProfileBtn.textContent = 'Hent min Løberprofil';
+                fetchProfileBtn.disabled = false;
+            }
+        }
+    }
 
     // Gem/hent nøglen fra sessionStorage
     apiKeyInput.value = sessionStorage.getItem('userGeminiApiKey') || '';
@@ -163,6 +195,9 @@ document.addEventListener('DOMContentLoaded', () => {
             loadingSpinner.style.display = 'none';
         }
     });
+    
+    // KØR PROFIL-HENT AUTOMATISK, NÅR SIDEN ER KLAR
+    loadProfileForGenerator();
 });
 
 
