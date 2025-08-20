@@ -1,6 +1,7 @@
+// planGenerator.js - FULD VERSION MED LIVE PROMPT PREVIEW (21. AUGUST 2025)
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Referencer til alle elementer
+    // --- Referencer til alle HTML-elementer ---
     const form = document.getElementById('plan-form');
     const apiKeyInput = document.getElementById('gemini-api-key');
     const modelSelect = document.getElementById('ai-model-select');
@@ -10,74 +11,83 @@ document.addEventListener('DOMContentLoaded', () => {
     const goalsContainer = document.getElementById('goals-container');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const statusMessage = document.getElementById('statusMessage');
+    const togglePromptBtn = document.getElementById('toggle-prompt-view-btn');
+    const promptContainer = document.getElementById('prompt-preview-container');
+    const promptContent = document.getElementById('prompt-preview-content');
+    const copyPromptBtn = document.getElementById('copy-prompt-btn');
     let goalCounter = 0;
 
-    // --- NY CENTRAL FUNKTION TIL AT HENTE PROFIL ---
-    async function loadProfileForGenerator() {
-        if (fetchProfileBtn) {
-            fetchProfileBtn.textContent = 'Henter...';
-            fetchProfileBtn.disabled = true;
-        }
-        try {
-            const response = await fetch('/api/get-profile');
-            if (!response.ok) {
-                if (response.status === 404 || response.status === 204) {
-                    console.log("Ingen profil fundet i databasen.");
-                } else {
-                    throw new Error('Kunne ikke hente profil fra serveren.');
-                }
-                return;
-            }
-            const profileData = await response.json();
-            if (profileData && profileData.runnerExperience) {
-                experienceTextarea.value = profileData.runnerExperience;
-            }
-        } catch (error) {
-            console.error("Fejl ved hentning af profil:", error);
-            alert("Kunne ikke hente din løberprofil.");
-        } finally {
-            if (fetchProfileBtn) {
-                fetchProfileBtn.textContent = 'Hent min Løberprofil';
-                fetchProfileBtn.disabled = false;
-            }
+    // --- NY FUNKTION: Opdaterer prompt-preview ---
+    function updatePromptPreview() {
+        if (promptContainer && !promptContainer.classList.contains('hidden')) {
+            const runnerInfo = {
+                experience: experienceTextarea.value,
+                trainingDaysPerWeek: document.getElementById('planTrainingDaysPerWeek').value
+            };
+            const goals = Array.from(document.querySelectorAll('.goal-row')).map(row => {
+                const id = row.querySelector('select').id.split('-')[1];
+                return {
+                    type: row.querySelector(`#goalType-${id}`).value,
+                    name: row.querySelector(`#raceName-${id}`).value,
+                    date: row.querySelector(`#raceDate-${id}`).value,
+                    distance: row.querySelector(`#distance-${id}`).value,
+                    elevation: row.querySelector(`#elevation-${id}`).value,
+                    goal: row.querySelector(`#raceGoal-${id}`).value
+                };
+            });
+            const promptText = buildAdvancedPrompt(runnerInfo, goals);
+            promptContent.textContent = promptText;
         }
     }
 
-    // Gem/hent nøglen fra sessionStorage
-    apiKeyInput.value = sessionStorage.getItem('userGeminiApiKey') || '';
-    apiKeyInput.addEventListener('input', () => {
-        sessionStorage.setItem('userGeminiApiKey', apiKeyInput.value);
+    // --- LOGIK FOR KNAPPER OG OPSTART ---
+
+    // Vis/Skjul prompt preview
+    togglePromptBtn?.addEventListener('click', () => {
+        promptContainer.classList.toggle('hidden');
+        togglePromptBtn.textContent = promptContainer.classList.contains('hidden') ? 'Vis Live Prompt' : 'Skjul Live Prompt';
+        updatePromptPreview(); // Opdater når den vises første gang
     });
 
-    // --- LOGIK FOR "HENT PROFIL"-KNAPPEN ---
-    fetchProfileBtn?.addEventListener('click', async () => {
+    // Kopiér prompt
+    copyPromptBtn?.addEventListener('click', () => {
+        navigator.clipboard.writeText(promptContent.textContent).then(() => {
+            copyPromptBtn.textContent = 'Kopieret!';
+            setTimeout(() => { copyPromptBtn.textContent = 'Kopiér'; }, 2000);
+        });
+    });
+
+    // Lyt efter ÆNDRINGER i hele formen for at opdatere prompten live
+    form?.addEventListener('input', updatePromptPreview);
+
+    // Gem/hent nøglen fra sessionStorage
+    apiKeyInput.value = sessionStorage.getItem('userGeminiApiKey') || '';
+    apiKeyInput.addEventListener('input', () => sessionStorage.setItem('userGeminiApiKey', apiKeyInput.value));
+
+    // Hent profil-logik
+    async function loadProfileForGenerator() {
+        if (!fetchProfileBtn) return;
         fetchProfileBtn.textContent = 'Henter...';
         fetchProfileBtn.disabled = true;
         try {
             const response = await fetch('/api/get-profile');
-            if (!response.ok) {
-                if(response.status === 404 || response.status === 204) {
-                    alert("Ingen profil fundet i databasen. Udfyld din profil på 'Løberdata'-siden først.");
-                } else {
-                    throw new Error('Kunne ikke hente profil fra serveren.');
+            if (response.ok) {
+                const profileData = await response.json();
+                if (profileData && profileData.runnerExperience) {
+                    experienceTextarea.value = profileData.runnerExperience;
+                    updatePromptPreview(); // Opdater prompten med de hentede data
                 }
-                return;
-            }
-            const profileData = await response.json();
-            if (profileData && profileData.runnerExperience) {
-                experienceTextarea.value = profileData.runnerExperience;
-            } else {
-                alert("Din profil er fundet, men den indeholder endnu ikke en erfaringsbeskrivelse.");
             }
         } catch (error) {
             console.error("Fejl ved hentning af profil:", error);
-            alert("Der opstod en fejl under hentning af din løberprofil.");
         } finally {
             fetchProfileBtn.textContent = 'Hent min Løberprofil';
             fetchProfileBtn.disabled = false;
         }
-    });
+    }
+    fetchProfileBtn?.addEventListener('click', loadProfileForGenerator);
 
+    // Tilføj mål-logik
     function addGoalRow() {
         goalCounter++;
         const goalRow = document.createElement('div');
@@ -85,104 +95,41 @@ document.addEventListener('DOMContentLoaded', () => {
         goalRow.innerHTML = `
             <button type="button" class="remove-goal-btn" title="Fjern mål">×</button>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label for="goalType-${goalCounter}" class="block font-medium text-sm">Type Mål</label>
-                    <select id="goalType-${goalCounter}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                        <option>A-Mål (Hovedløb)</option>
-                        <option>B-Mål (Vigtigt testløb)</option>
-                        <option>C-Mål (Træningsløb)</option>
-                    </select>
-                </div>
-                <div class="md:col-span-2">
-                    <label for="raceName-${goalCounter}" class="block font-medium text-sm">Navn på løb</label>
-                    <input type="text" id="raceName-${goalCounter}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
-                </div>
-                <div>
-                    <label for="raceDate-${goalCounter}" class="block font-medium text-sm">Dato</label>
-                    <input type="date" id="raceDate-${goalCounter}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
-                </div>
-                <div>
-                    <label for="distance-${goalCounter}" class="block font-medium text-sm">Distance (km)</label>
-                    <input type="number" id="distance-${goalCounter}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
-                </div>
-                <div>
-                    <label for="elevation-${goalCounter}" class="block font-medium text-sm">Højdemeter</label>
-                    <input type="number" id="elevation-${goalCounter}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
-                </div>
+                <div><label for="goalType-${goalCounter}" class="block font-medium text-sm">Type Mål</label><select id="goalType-${goalCounter}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm"><option>A-Mål (Hovedløb)</option><option>B-Mål (Vigtigt testløb)</option><option>C-Mål (Træningsløb)</option></select></div>
+                <div class="md:col-span-2"><label for="raceName-${goalCounter}" class="block font-medium text-sm">Navn på løb</label><input type="text" id="raceName-${goalCounter}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm" required></div>
+                <div><label for="raceDate-${goalCounter}" class="block font-medium text-sm">Dato</label><input type="date" id="raceDate-${goalCounter}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm" required></div>
+                <div><label for="distance-${goalCounter}" class="block font-medium text-sm">Distance (km)</label><input type="number" id="distance-${goalCounter}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm" required></div>
+                <div><label for="elevation-${goalCounter}" class="block font-medium text-sm">Højdemeter</label><input type="number" id="elevation-${goalCounter}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm" required></div>
             </div>
-            <div class="mt-4">
-                <label for="raceGoal-${goalCounter}" class="block font-medium text-sm">Mål for dette løb</label>
-                <textarea id="raceGoal-${goalCounter}" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="F.eks. 'Gennemføre under 12 timer' eller 'Teste ernæringsstrategi'"></textarea>
-            </div>
-            <div class="mt-4">
-                <label for="gpxFile-${goalCounter}" class="gpx-upload-btn">Upload GPX (Valgfrit)</label>
-                <input type="file" id="gpxFile-${goalCounter}" class="hidden" accept=".gpx">
-                <span id="gpxFileName-${goalCounter}" class="ml-2 text-sm text-gray-500"></span>
-            </div>
-        `;
-        goalRow.querySelector('.remove-goal-btn').addEventListener('click', () => goalRow.remove());
-        goalRow.querySelector(`label[for='gpxFile-${goalCounter}']`).addEventListener('click', () => {
-            goalRow.querySelector(`#gpxFile-${goalCounter}`).click();
-        });
-        goalRow.querySelector(`#gpxFile-${goalCounter}`).addEventListener('change', (e) => {
-             const fileName = e.target.files.length > 0 ? e.target.files[0].name : '';
-             goalRow.querySelector(`#gpxFileName-${goalCounter}`).textContent = fileName;
+            <div class="mt-4"><label for="raceGoal-${goalCounter}" class="block font-medium text-sm">Mål for dette løb</label><textarea id="raceGoal-${goalCounter}" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm" placeholder="F.eks. 'Gennemføre under 12 timer'"></textarea></div>`;
+        goalRow.querySelector('.remove-goal-btn').addEventListener('click', () => {
+            goalRow.remove();
+            updatePromptPreview();
         });
         goalsContainer.appendChild(goalRow);
+        updatePromptPreview();
     }
-
     addGoalBtn?.addEventListener('click', addGoalRow);
     addGoalRow();
 
-    document.getElementById('fetch-profile-btn').addEventListener('click', () => {
-        document.getElementById('experience').value = localStorage.getItem('runnerExperience') || '';
-    });
-
-    // --- LOGIK FOR FORM SUBMISSION (kald til Gemini) ---
+    // HOVEDLOGIK: Når formularen submittes
     form?.addEventListener('submit', async (event) => {
         event.preventDefault();
         statusMessage.textContent = '';
         loadingSpinner.style.display = 'block';
 
         const userApiKey = apiKeyInput.value.trim();
-        const selectedModel = modelSelect.value;
-
-        const userConfirmed = confirm("Bekræft venligst den prompt, der sendes til AI'en:\n\n" + prompt);
-
-        if (!userConfirmed) {
-            statusMessage.textContent = 'Generering afbrudt af bruger.';
-            loadingSpinner.style.display = 'none';
-            return; // Stopper, hvis du trykker "Annuller"
-        }
-
-        const runnerInfo = {
-            experience: document.getElementById('experience').value,
-            trainingDaysPerWeek: document.getElementById('planTrainingDaysPerWeek').value,
-        };
-        const goals = Array.from(document.querySelectorAll('.goal-row')).map((row) => {
-        const id = row.querySelector('select').id.split('-')[1];
-        return {
-            type: row.querySelector(`#goalType-${id}`).value,
-            name: row.querySelector(`#raceName-${id}`).value,
-            date: row.querySelector(`#raceDate-${id}`).value,
-            distance: row.querySelector(`#distance-${id}`).value,
-            elevation: row.querySelector(`#elevation-${id}`).value,
-            goal: row.querySelector(`#raceGoal-${id}`).value,
-            };
-        });
+        const selectedModel = document.getElementById('ai-model-select').value;
+        const prompt = promptContent.textContent; // Brug den live-genererede prompt
         
-        let rawResponseText = '';
         try {
-            statusMessage.textContent = `Genererer komplet træningsplan... Dette kan tage et øjeblik.`;
-            const prompt = buildAdvancedPrompt(runnerInfo, goals);
-            
-            // OPDATERET: Kalder nu vores nye, sikre callGemini-funktion
+            statusMessage.textContent = `Genererer plan med ${selectedModel}...`;
+
+            let rawResponseText = '';
             if (userApiKey) {
-                // Hvis brugeren har indtastet en nøgle, kald direkte fra browseren
                 console.log("Bruger personlig API nøgle (Client-side kald)");
                 rawResponseText = await callGeminiClientSide(prompt, userApiKey, selectedModel);
             } else {
-                // Ellers, brug appens indbyggede backend-kald (fallback)
                 console.log("Bruger appens indbyggede nøgle (Backend-kald)");
                 rawResponseText = await callGeminiBackend(prompt);
             }
@@ -195,36 +142,46 @@ document.addEventListener('DOMContentLoaded', () => {
             statusMessage.style.color = 'green';
 
         } catch (error) {
-            statusMessage.innerHTML = `<strong>Der opstod en fejl.</strong><br>Se venligst browserens konsol for tekniske detaljer.`;
+            statusMessage.innerHTML = `<strong>Der opstod en fejl:</strong><br>${error.message}`;
             statusMessage.style.color = 'red';
-            console.error("Fejl under generering af plan:", error);
-            console.log("--- AI RÅ SVAR ---", rawResponseText);
+            console.error("Fejl under generering:", error);
         } finally {
             loadingSpinner.style.display = 'none';
         }
     });
-    
-    // KØR PROFIL-HENT AUTOMATISK, NÅR SIDEN ER KLAR
+
+    // KØR PROFIL-HENT AUTOMATISK
     loadProfileForGenerator();
 });
 
+// --- HJÆLPEFUNKTIONER ---
+async function callGeminiClientSide(prompt, apiKey, model) {
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const payload = { contents: [{ parts: [{ text: prompt }] }], generationConfig: { "response_mime_type": "application/json" }, safetySettings: [{ category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' }, { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' }, { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' }, { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }] };
+    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const result = await response.json();
+    if (!response.ok) throw new Error(`API fejl: ${result?.error?.message || 'Ukendt fejl'}`);
+    if (result.candidates?.[0]) return result.candidates[0].content.parts[0].text;
+    throw new Error("Intet svar fra AI. Det kan være blokeret.");
+}
+
+async function callGeminiBackend(prompt) {
+    const response = await fetch('/api/generate-plan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: prompt }) });
+    if (!response.ok) {
+        const errorBody = await response.json();
+        throw new Error(`Fejl fra server: ${errorBody.error || JSON.stringify(errorBody)}`);
+    }
+    const result = await response.json();
+    if (result.candidates?.[0]) return result.candidates[0].content.parts[0].text;
+    throw new Error("Intet svar fra AI via backend.");
+}
 
 function buildAdvancedPrompt(runnerInfo, goals) {
-    let goalsString = goals.map(g => 
-        `- Goal Type: ${g.type}\n  Race Name: ${g.name}\n  Date: ${g.date}\n  Distance: ${g.distance}km\n  Elevation: ${g.elevation}m\n  Specific Goal: ${g.goal}\n  GPX File Provided: ${g.gpxFileName}`
-    ).join('\n');
-
-    const runnerProfile = `
-- Runner Experience: ${runnerInfo.experience}
-- Desired Training Days Per Week: ${runnerInfo.trainingDaysPerWeek}
-    `;
-
-    const today = new Date();
-    today.setDate(today.getDate() + 1);
-    const startDate = today.toISOString().split('T')[0];
-
-    const finalGoal = goals.reduce((latest, goal) => (new Date(goal.date) > new Date(latest.date) ? goal : latest), goals[0]);
-
+    const goalsString = goals.map(g => `- Mål: ${g.type}, Navn: ${g.name}, Dato: ${g.date}, Distance: ${g.distance}km, Højdemeter: ${g.elevation}m, Specifikt mål: ${g.goal}`).join('\n');
+    const runnerProfile = `Erfaring: ${runnerInfo.experience}\nØnskede træningsdage/uge: ${runnerInfo.trainingDaysPerWeek}`;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() + 1);
+    const finalGoal = goals.length > 0 ? goals.reduce((latest, goal) => (new Date(goal.date) > new Date(latest.date) ? goal : latest), goals[0]) : { date: new Date().toISOString().split('T')[0] };
     return `You are a world-class ultrarunning coach. Your task is to create a scientifically-backed training plan based on the user's profile and goals.
 The output MUST be a valid JSON array of objects. Do not output anything else.
 
@@ -235,8 +192,6 @@ The output MUST be a valid JSON array of objects. Do not output anything else.
 4.  **Progressive Overload**
 5.  **Functional Strength**
 6.  **Use the following running workout types: endurance, steady-state, tempo, fartleg and VO2max runs**
-7.  **Always add nesseary recovery week or weeks after last goal race**
-8.  **Always use information on race length and elevation information in af scientific manner in the training plan**
 
 **Runner's Information:**
 ${runnerProfile}
@@ -255,7 +210,7 @@ ${goalsString}
 }
 
 **Generation Rules:**
-- The plan must start on ${startDate} and cover the entire period up to and including the final A-Goal on ${finalGoal.date}.
+- The plan must start on ${startDate.toISOString().split('T')[0]} and cover the entire period up to and including the final goal on ${finalGoal.date}.
 - \`week\`: The ISO 8601 week number.
 - \`day\`: The Danish name for the day of the week.
 - \`plan\`: Clear training description using RPE. For goals, state goal type, e.g., "A-Mål: [Race Name]".
@@ -266,79 +221,14 @@ ${goalsString}
 Generate the complete JSON plan now.`;
 }
 
-// OPDATERET: Kalder nu vores eget backend-endpoint
-async function callGemini(prompt) {
-    const response = await fetch('/api/generate-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt })
-    });
-
-    if (!response.ok) {
-        const errorBody = await response.json();
-        throw new Error(`Fejl fra server: ${errorBody.error || JSON.stringify(errorBody)}`);
-    }
-    
-    const result = await response.json();
-
-    if (result.candidates && result.candidates.length > 0) {
-        return result.candidates[0].content.parts[0].text;
-    } else {
-        // Hvis der er et delvist svar pga. sikkerhedsblokering
-        if(result.promptFeedback?.blockReason) {
-            throw new Error(`Intet svar modtaget fra AI. Årsag: ${result.promptFeedback.blockReason}`);
-        }
-        throw new Error("Intet svar modtaget fra AI.");
-    }
-}
-
-// Kald direkte fra browseren med brugerens nøgle
-async function callGeminiClientSide(prompt, apiKey, model) {
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    
-    // RETTET: Bruger nu 'prompt' i stedet for 'userPrompt'
-    const payload = {
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { "response_mime_type": "application/json" },
-    };
-
-    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    const result = await response.json();
-
-    if (!response.ok) throw new Error(`API fejl: ${result?.error?.message || 'Ukendt fejl'}`);
-    if (result.candidates?.[0]) return result.candidates[0].content.parts[0].text;
-
-    throw new Error("Intet svar fra AI. Det kan være blokeret af sikkerhedsfiltre.");
-}
-
-
-// Kald via vores egen backend (hvis ingen nøgle er indtastet)
-async function callGeminiBackend(prompt) {
-    const response = await fetch('/api/generate-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt })
-    });
-    if (!response.ok) {
-        const errorBody = await response.json();
-        throw new Error(`Fejl fra server: ${errorBody.error || JSON.stringify(errorBody)}`);
-    }
-    const result = await response.json();
-    if (result.candidates?.[0]) return result.candidates[0].content.parts[0].text;
-    throw new Error("Intet svar fra AI via backend.");
-}
-
 function safeParseJson(jsonString) {
-    const lastValidBrace = jsonString.lastIndexOf('}');
-    if (lastValidBrace === -1) {
-        throw new Error("Intet gyldigt JSON-objekt fundet i AI-svaret.");
-    }
-    let trimmedJson = jsonString.substring(0, lastValidBrace + 1);
-
-    if (trimmedJson.startsWith('[')) {
-       return JSON.parse(trimmedJson + ']');
-    } else {
-       throw new Error("AI-svar startede ikke med forventet '['.");
+    try {
+        const startIndex = jsonString.indexOf('[');
+        const endIndex = jsonString.lastIndexOf(']');
+        if (startIndex === -1 || endIndex === -1) throw new Error("Kunne ikke finde et JSON-array i AI-svaret.");
+        return JSON.parse(jsonString.substring(startIndex, endIndex + 1));
+    } catch (e) {
+        throw new Error("Kunne ikke parse JSON fra AI-svar. Prøv igen.");
     }
 }
 

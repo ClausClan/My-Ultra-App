@@ -21,43 +21,74 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
+
+
 <body class="antialiased text-slate-800">
-    <div class="container mx-auto max-w-7xl p-4 md:p-8">
+    <div class="container mx-auto max-w-4xl p-4 md:p-8">
         <div class="text-center mb-8">
             <h1 class="text-3xl md:text-4xl font-bold text-slate-900">AI Træningsplan Generator</h1>
-            <div class="flex justify-center mt-4">
-                <button id="toggle-prompt-view-btn" class="btn btn-secondary text-sm">Vis Live Prompt</button>
-            </div>
+            <p class="mt-2 text-lg text-slate-600">Definer dine mål, hent din profil, og få en skræddersyet træningsplan.</p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <form id="plan-form" class="space-y-6">
             
-            <div class="lg:col-span-2">
-                <form id="plan-form" class="space-y-6">
-                    <div class="form-section">
-                        <h2 class="text-lg font-semibold border-b pb-2 mb-4">Din API Nøgle</h2>
-                        <div>
-                            <label for="gemini-api-key" class="block font-medium text-sm">Personlig Gemini API Nøgle</label>
-                            <input type="password" id="gemini-api-key" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
-                        </div>
+            <div class="form-section">
+                <h2 class="text-xl font-semibold border-b pb-2 mb-4">AI Konfiguration</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="gemini-api-key" class="block font-medium">Personlig Gemini API Nøgle (Valgfrit)</label>
+                        <input type="password" id="gemini-api-key" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="Indsæt din egen nøgle her...">
+                        <p class="help-text mt-1">Hvis feltet er tomt, bruges appens indbyggede (begrænsede) adgang.</p>
                     </div>
-                    <div class="form-section">
-                         <h2 class="text-lg font-semibold border-b pb-2 mb-4">1. Din Profil & Præferencer</h2>
-                         </div>
-                    </form>
-            </div>
-
-            <div id="prompt-preview-container" class="lg:col-span-1 hidden">
-                <div class="form-section sticky top-8">
-                    <div class="flex justify-between items-center border-b pb-2 mb-4">
-                        <h2 class="text-lg font-semibold">Live Prompt Preview</h2>
-                        <button type="button" id="copy-prompt-btn" class="btn btn-secondary text-sm">Kopiér</button>
+                    <div>
+                        <label for="ai-model-select" class="block font-medium">Vælg AI Model</label>
+                        <select id="ai-model-select" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash (Hurtig & God)</option>
+                            <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro (Bedst / Kræver personlig nøgle)</option>
+                        </select>
                     </div>
-                    <pre id="prompt-preview-content" class="whitespace-pre-wrap text-xs bg-slate-50 p-3 rounded-md h-96 overflow-y-auto"></pre>
                 </div>
             </div>
 
-        </div>
+            <div class="form-section">
+                <h2 class="text-xl font-semibold border-b pb-2 mb-4">1. Din Profil & Præferencer</h2>
+                <button type="button" id="fetch-profile-btn" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-md hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 mb-4">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    Hent min Løberprofil
+                </button>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="experience" class="block font-medium">Din erfaring</label>
+                         <textarea id="experience" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"></textarea>
+                    </div>
+                    <div>
+                        <label for="planTrainingDaysPerWeek" class="block font-medium">Ønskede træningsdage pr. uge</label>
+                        <input type="number" id="planTrainingDaysPerWeek" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
+                        <p class="help-text mt-1">Hvor mange dage ønsker du at træne i den nye plan?</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="flex justify-between items-center border-b pb-2 mb-4">
+                    <h2 class="text-xl font-semibold">2. Dine Sæsonmål</h2>
+                    <button type="button" id="add-goal-btn" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-700 transition-colors text-sm flex items-center gap-2">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                        Tilføj Mål
+                    </button>
+                </div>
+                <div id="goals-container" class="space-y-4">
+                    </div>
+            </div>
+
+            <div>
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-md hover:bg-blue-700 transition-colors">
+                    Generer Plan & Download Fil
+                </button>
+            </div>
+        </form>
+        <div class="loading-spinner" id="loadingSpinner"></div>
+        <div id="statusMessage" class="mt-4 text-center"></div>
     </div>
 
     <script type="module" src="js/planGenerator.js"></script>
