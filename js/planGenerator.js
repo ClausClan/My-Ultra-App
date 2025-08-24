@@ -1,5 +1,5 @@
 // planGenerator.js// planGenerator.js - FULD VERSION MED LIVE PROMPT PREVIEW (21. AUGUST 2025)
-import { authenticatedFetch } from './utils.js';
+import { authenticatedFetch } from './modules/utils.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Referencer til alle elementer ---
