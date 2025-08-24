@@ -20,7 +20,7 @@ const passwordInput = document.getElementById('password-input');
 
 // Håndter login
 loginButton.addEventListener('click', async () => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabaseClient.auth.signInWithPassword({
         email: emailInput.value,
         password: passwordInput.value,
     });
@@ -29,7 +29,7 @@ loginButton.addEventListener('click', async () => {
 
 // Håndter oprettelse af bruger
 signupButton.addEventListener('click', async () => {
-    const { error } = await supabase.auth.signUp({
+    const { error } = await supabaseClient.auth.signUp({
         email: emailInput.value,
         password: passwordInput.value,
     });
@@ -39,7 +39,7 @@ signupButton.addEventListener('click', async () => {
 
 // Håndter logud
 logoutButton.addEventListener('click', async () => {
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
 });
 
 
@@ -61,24 +61,9 @@ supabase.auth.onAuthStateChange((event, session) => {
 
 
 // --- GLOBALE VARIABLER ---
-let supabaseClient = null;
 let userProfile = null;
 
 // --- HJÆLPEFUNKTIONER ---
-
-async function getSupabaseClient() {
-    if (supabaseClient) return supabaseClient;
-    try {
-        const response = await fetch('/api/get-supabase-config');
-        if (!response.ok) throw new Error('Could not fetch Supabase config');
-        const config = await response.json();
-        supabaseClient = supabase.createClient(config.url, config.anonKey);
-        return supabaseClient;
-    } catch (error) {
-        console.error("Failed to initialize Supabase client:", error);
-        return null;
-    }
-}
 
 function collectProfileDataFromForm() {
     const profileData = {};
