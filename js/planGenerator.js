@@ -1,23 +1,21 @@
-// planGenerator.js - FULD VERSION MED LIVE PROMPT PREVIEW (21. AUGUST 2025)
+// planGenerator.js// planGenerator.js - FULD VERSION MED LIVE PROMPT PREVIEW (21. AUGUST 2025)
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Referencer til alle HTML-elementer ---
+    // --- Referencer til alle elementer ---
     const form = document.getElementById('plan-form');
     const apiKeyInput = document.getElementById('gemini-api-key');
-    const modelSelect = document.getElementById('ai-model-select');
     const fetchProfileBtn = document.getElementById('fetch-profile-btn');
     const experienceTextarea = document.getElementById('experience');
     const addGoalBtn = document.getElementById('add-goal-btn');
     const goalsContainer = document.getElementById('goals-container');
-    const loadingSpinner = document.getElementById('loadingSpinner');
-    const statusMessage = document.getElementById('statusMessage');
-    const togglePromptBtn = document.getElementById('toggle-prompt-view-btn');
+    const togglePromptSwitch = document.getElementById('toggle-prompt-view');
+    const formContainer = document.getElementById('form-container');
     const promptContainer = document.getElementById('prompt-preview-container');
     const promptContent = document.getElementById('prompt-preview-content');
     const copyPromptBtn = document.getElementById('copy-prompt-btn');
     let goalCounter = 0;
 
-    // --- NY FUNKTION: Opdaterer prompt-preview ---
+    // --- FUNKTION: Opdaterer prompt-preview ---
     function updatePromptPreview() {
         if (promptContainer && !promptContainer.classList.contains('hidden')) {
             const runnerInfo = {
@@ -35,18 +33,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     goal: row.querySelector(`#raceGoal-${id}`).value
                 };
             });
-            const promptText = buildAdvancedPrompt(runnerInfo, goals);
-            promptContent.textContent = promptText;
+            promptContent.textContent = buildAdvancedPrompt(runnerInfo, goals);
         }
     }
 
-    // --- LOGIK FOR KNAPPER OG OPSTART ---
-
-    // Vis/Skjul prompt preview
-    togglePromptBtn?.addEventListener('click', () => {
-        promptContainer.classList.toggle('hidden');
-        togglePromptBtn.textContent = promptContainer.classList.contains('hidden') ? 'Vis Live Prompt' : 'Skjul Live Prompt';
-        updatePromptPreview(); // Opdater når den vises første gang
+// --- LOGIK FOR KNAPPER OG OPSTART ---
+    
+    // Tænd/Sluk slider for prompt-vinduet
+    togglePromptSwitch.addEventListener('change', () => {
+        const isVisible = togglePromptSwitch.checked;
+        promptContainer.classList.toggle('hidden', !isVisible);
+        formContainer.classList.toggle('lg:col-span-3', !isVisible);
+        formContainer.classList.toggle('lg:col-span-2', isVisible);
+        if (isVisible) {
+            updatePromptPreview();
+        }
     });
 
     // Kopiér prompt
@@ -60,9 +61,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Lyt efter ÆNDRINGER i hele formen for at opdatere prompten live
     form?.addEventListener('input', updatePromptPreview);
 
-    // Gem/hent nøglen fra sessionStorage
+    // Gem/hent API-nøgle (uændret)
     apiKeyInput.value = sessionStorage.getItem('userGeminiApiKey') || '';
     apiKeyInput.addEventListener('input', () => sessionStorage.setItem('userGeminiApiKey', apiKeyInput.value));
+
 
     // Hent profil-logik
     async function loadProfileForGenerator() {
