@@ -24,13 +24,15 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             const goals = Array.from(document.querySelectorAll('.goal-row')).map(row => {
                 const id = row.querySelector('select').id.split('-')[1];
+                // OPDATERET: Tilføjet gpxFileName
                 return {
                     type: row.querySelector(`#goalType-${id}`).value,
                     name: row.querySelector(`#raceName-${id}`).value,
                     date: row.querySelector(`#raceDate-${id}`).value,
                     distance: row.querySelector(`#distance-${id}`).value,
                     elevation: row.querySelector(`#elevation-${id}`).value,
-                    goal: row.querySelector(`#raceGoal-${id}`).value
+                    goal: row.querySelector(`#raceGoal-${id}`).value,
+                    gpxFileName: row.querySelector(`#gpxFile-${id}`).files[0] ? row.querySelector(`#gpxFile-${id}`).files[0].name : 'N/A'
                 };
             });
             promptContent.textContent = buildAdvancedPrompt(runnerInfo, goals);
@@ -94,6 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
         goalCounter++;
         const goalRow = document.createElement('div');
         goalRow.className = 'goal-row';
+        // OPDATERET HTML: Tilføjet sektion for GPX-upload
         goalRow.innerHTML = `
             <button type="button" class="remove-goal-btn" title="Fjern mål">×</button>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -103,7 +106,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div><label for="distance-${goalCounter}" class="block font-medium text-sm">Distance (km)</label><input type="number" id="distance-${goalCounter}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm" required></div>
                 <div><label for="elevation-${goalCounter}" class="block font-medium text-sm">Højdemeter</label><input type="number" id="elevation-${goalCounter}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm" required></div>
             </div>
-            <div class="mt-4"><label for="raceGoal-${goalCounter}" class="block font-medium text-sm">Mål for dette løb</label><textarea id="raceGoal-${goalCounter}" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm" placeholder="F.eks. 'Gennemføre under 12 timer'"></textarea></div>`;
+            <div class="mt-4"><label for="raceGoal-${goalCounter}" class="block font-medium text-sm">Mål for dette løb</label><textarea id="raceGoal-${goalCounter}" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm" placeholder="F.eks. 'Gennemføre under 12 timer'"></textarea></div>
+            
+            <div class="mt-4">
+                <label for="gpxFile-${goalCounter}" class="gpx-upload-btn">Upload GPX (Valgfrit)</label>
+                <input type="file" id="gpxFile-${goalCounter}" class="hidden" accept=".gpx">
+                <span id="gpxFileName-${goalCounter}" class="ml-2 text-sm text-gray-500"></span>
+            </div>
+        `;
+
+        // NY LOGIK: Forbinder den synlige knap med det skjulte input-felt
+        goalRow.querySelector(`label[for='gpxFile-${goalCounter}']`).addEventListener('click', () => {
+            goalRow.querySelector(`#gpxFile-${goalCounter}`).click();
+        });
+        goalRow.querySelector(`#gpxFile-${goalCounter}`).addEventListener('change', (e) => {
+            const fileName = e.target.files.length > 0 ? e.target.files[0].name : '';
+            goalRow.querySelector(`#gpxFileName-${goalCounter}`).textContent = fileName;
+        });
+
         goalRow.querySelector('.remove-goal-btn').addEventListener('click', () => {
             goalRow.remove();
             updatePromptPreview();
@@ -179,8 +199,7 @@ async function callGeminiBackend(prompt) {
 }
 
 function buildAdvancedPrompt(runnerInfo, goals) {
-    const goalsString = goals.map(g => `- Mål: ${g.type}, Navn: ${g.name}, Dato: ${g.date}, Distance: ${g.distance}km, Højdemeter: ${g.elevation}m, Specifikt mål: ${g.goal}`).join('\n');
-    const runnerProfile = `Erfaring: ${runnerInfo.experience}\nØnskede træningsdage/uge: ${runnerInfo.trainingDaysPerWeek}`;
+    const goalsString = goals.map(g => `- Mål: ${g.type}, Navn: ${g.name}, Dato: ${g.date}, Distance: ${g.distance}km, Højdemeter: ${g.elevation}m, GPX Fil: ${g.gpxFileName}, Specifikt mål: ${g.goal}`).join('\n');    const runnerProfile = `Erfaring: ${runnerInfo.experience}\nØnskede træningsdage/uge: ${runnerInfo.trainingDaysPerWeek}`;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() + 1);
     const finalGoal = goals.length > 0 ? goals.reduce((latest, goal) => (new Date(goal.date) > new Date(latest.date) ? goal : latest), goals[0]) : { date: new Date().toISOString().split('T')[0] };
