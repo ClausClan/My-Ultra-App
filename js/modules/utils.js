@@ -1,6 +1,6 @@
 // js/modules/utils.js
 
-import { supabase } from '../supabaseClient.js';
+import { supabase } from './supabaseClient.js';
 
 export function estimateTssFromPlan(planText) {
     if (!planText) return 0;
@@ -60,7 +60,7 @@ export function formatDateKey(date) {
 export async function authenticatedFetch(url, options = {}) {
     // 1. Hent den nuværende brugers session.
     // Supabase håndterer automatisk at forny tokenet, hvis det er udløbet.
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
 
     if (sessionError) {
         console.error('Fejl ved hentning af session:', sessionError);
