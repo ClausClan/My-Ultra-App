@@ -58,34 +58,27 @@ export function formatDateKey(date) {
  * @returns {Promise<Response>} - Et promise, der resolver til fetch-responset.
  */
 export async function authenticatedFetch(url, options = {}) {
-    // 1. Hent den nuværende brugers session.
-    // Supabase håndterer automatisk at forny tokenet, hvis det er udløbet.
-    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession(); // <-- CORRECTION 2
 
     if (sessionError) {
-        console.error('Fejl ved hentning af session:', sessionError);
-        // Håndter evt. fejl, f.eks. ved at omdirigere til login-siden.
-        window.location.href = '/'; // Simpel løsning: send tilbage til start
+        console.error('Error fetching session:', sessionError);
+        window.location.href = '/'; 
         return;
     }
 
     if (!session) {
-        // Hvis der ikke er nogen session, er brugeren ikke logget ind.
-        console.warn('Forsøg på at lave et autentificeret kald uden at være logget ind.');
-        window.location.href = '/'; // Send tilbage til login
+        console.warn('Attempted to make an authenticated call without being logged in.');
+        window.location.href = '/';
         return;
     }
 
-    // 2. Klargør headers. Start med eventuelle eksisterende headers fra options.
     const headers = {
         ...options.headers,
-        'Content-Type': 'application/json' // God vane at specificere
+        'Content-Type': 'application/json'
     };
-
-    // 3. Tilføj Authorization-headeret med brugerens token.
+    
     headers['Authorization'] = `Bearer ${session.accessToken}`;
 
-    // 4. Byg det nye options-objekt og kald den originale fetch.
     const newOptions = {
         ...options,
         headers
