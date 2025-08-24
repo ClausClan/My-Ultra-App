@@ -14,6 +14,17 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+    <div id="auth-container">
+    <h2>Log ind</h2>
+    <input type="email" id="email-input" placeholder="Email">
+    <input type="password" id="password-input" placeholder="Password">
+    <button id="login-button">Log Ind</button>
+    <button id="signup-button">Opret Bruger</button>
+    <button id="logout-button" style="display:none;">Log Ud</button>
+</div>
+
+<div id="app-container" style="display:none;">
+    </div>
     <!-- tilføjer loading-overlay -->
     <div id="loading-overlay" class="loading-overlay">
     <div class="spinner"></div>

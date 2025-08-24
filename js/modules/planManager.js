@@ -57,7 +57,7 @@ function getWeekNumberForDisplay(d) {
 // --- DATAHÅNDTERING ---
 async function saveActivePlan(planName, planData) {
     try {
-        const response = await fetch('/api/save-plan', {
+        const response = await authenticatedFetch('/api/save-plan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ planName, planData })
@@ -72,7 +72,7 @@ async function saveActivePlan(planName, planData) {
 }
 export async function loadActivePlan() {
     try {
-        const response = await fetch('/api/get-plan');
+        const response = await authenticatedFetch('/api/get-plan');
         if (response.status === 204 || response.status === 404) {
             activePlan = []; activePlanName = ''; return;
         }

@@ -6,6 +6,59 @@ import { initializePlanPage, loadActivePlan, getActivePlan } from './modules/pla
 import { initializeAnalysePage } from './modules/analyseManager.js';
 import { initializeStravaConnection } from './modules/stravaManager.js';
 
+import { supabase } from './supabaseClient.js';
+
+// DOM elementer
+const authContainer = document.getElementById('auth-container');
+const appContainer = document.getElementById('app-container');
+const loginButton = document.getElementById('login-button');
+const signupButton = document.getElementById('signup-button');
+const logoutButton = document.getElementById('logout-button');
+const emailInput = document.getElementById('email-input');
+const passwordInput = document.getElementById('password-input');
+
+// Håndter login
+loginButton.addEventListener('click', async () => {
+    const { error } = await supabase.auth.signInWithPassword({
+        email: emailInput.value,
+        password: passwordInput.value,
+    });
+    if (error) console.error('Fejl ved login:', error.message);
+});
+
+// Håndter oprettelse af bruger
+signupButton.addEventListener('click', async () => {
+    const { error } = await supabase.auth.signUp({
+        email: emailInput.value,
+        password: passwordInput.value,
+    });
+    if (error) console.error('Fejl ved oprettelse:', error.message);
+    else alert('Bruger oprettet! Tjek din email for at bekræfte.');
+});
+
+// Håndter logud
+logoutButton.addEventListener('click', async () => {
+    await supabase.auth.signOut();
+});
+
+
+// Dette er den vigtigste del: Lyt til ændringer i login-status
+supabase.auth.onAuthStateChange((event, session) => {
+    if (session) {
+        // Bruger er logget ind
+        appContainer.style.display = 'block';
+        authContainer.style.display = 'none';
+        logoutButton.style.display = 'block';
+        // Her skal du kalde dine funktioner for at hente data (f.eks. loadCalendarData())
+    } else {
+        // Bruger er logget ud
+        appContainer.style.display = 'none';
+        authContainer.style.display = 'block';
+        logoutButton.style.display = 'none';
+    }
+});
+
+
 // --- GLOBALE VARIABLER ---
 let supabaseClient = null;
 let userProfile = null;
@@ -86,7 +139,7 @@ function populateFormWithProfileData(profileData) {
 
 async function loadProfileData() {
     try {
-        const response = await fetch('/api/get-profile');
+        const response = await authenticatedFetch('/api/get-profile');
         if (!response.ok) {
             if (response.status === 404 || response.status === 204) return;
             throw new Error('Serverfejl ved hentning af profil');
@@ -250,7 +303,7 @@ function setupEventListeners() {
         saveButton.disabled = true;
         const profileData = collectProfileDataFromForm();
         try {
-            const response = await fetch('/api/save-profile', {
+            const response = await authenticatedFetch('/api/save-profile', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(profileData)

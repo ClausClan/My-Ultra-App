@@ -3,6 +3,7 @@
 import { getActivePlan } from './planManager.js';
 import { fetchActivities, fetchActivityDetails } from './stravaManager.js';
 import { formatDateKey } from './utils.js';
+import { authenticatedFetch } from './utils.js';
 
 // --- GLOBALE VARIABLER ---
 let currentDate = new Date();
@@ -225,7 +226,7 @@ async function saveDataForDay(date) {
         }
     });
     try {
-        const response = await fetch('/api/save-daily-log', {
+        const response = await authenticatedFetch('/api/save-daily-log', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(dataPayload)
@@ -244,7 +245,7 @@ async function saveDataForDay(date) {
 
 export async function initializeCalendar() {
     try {
-        const response = await fetch('/api/get-logs');
+        const response = await authenticatedFetch('/api/get-logs');
         if (!response.ok) throw new Error('Kunne ikke hente data');
         const rawLogs = await response.json();
         const logsByDate = {};
@@ -314,7 +315,7 @@ export async function initializeCalendar() {
             });
 
             syncBtn.textContent = 'Gemmer i database...';
-            const response = await fetch('/api/bulk-save-logs', {
+            const response = await authenticatedFetch('/api/bulk-save-logs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(logsToCreate),

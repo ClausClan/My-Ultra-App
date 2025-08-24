@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchProfileBtn.textContent = 'Henter...';
         fetchProfileBtn.disabled = true;
         try {
-            const response = await fetch('/api/get-profile');
+            const response = await authenticatedFetch('/api/get-profile');
             if (response.ok) {
                 const profileData = await response.json();
                 if (profileData && profileData.runnerExperience) {

@@ -1,5 +1,7 @@
 // js/modules/utils.js
 
+import { supabase } from '../supabaseClient.js';
+
 export function estimateTssFromPlan(planText) {
     if (!planText) return 0;
     const text = planText.toLowerCase();
@@ -46,4 +48,48 @@ export function formatDateKey(date) {
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+}
+
+/**
+ * En "wrapper" omkring den normale fetch-funktion, som automatisk tilføjer
+ * brugerens authentication token.
+ * @param {string} url - Den API-URL, der skal kaldes.
+ * @param {object} options - Et standard options-objekt til fetch (f.eks. method, body).
+ * @returns {Promise<Response>} - Et promise, der resolver til fetch-responset.
+ */
+export async function authenticatedFetch(url, options = {}) {
+    // 1. Hent den nuværende brugers session.
+    // Supabase håndterer automatisk at forny tokenet, hvis det er udløbet.
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError) {
+        console.error('Fejl ved hentning af session:', sessionError);
+        // Håndter evt. fejl, f.eks. ved at omdirigere til login-siden.
+        window.location.href = '/'; // Simpel løsning: send tilbage til start
+        return;
+    }
+
+    if (!session) {
+        // Hvis der ikke er nogen session, er brugeren ikke logget ind.
+        console.warn('Forsøg på at lave et autentificeret kald uden at være logget ind.');
+        window.location.href = '/'; // Send tilbage til login
+        return;
+    }
+
+    // 2. Klargør headers. Start med eventuelle eksisterende headers fra options.
+    const headers = {
+        ...options.headers,
+        'Content-Type': 'application/json' // God vane at specificere
+    };
+
+    // 3. Tilføj Authorization-headeret med brugerens token.
+    headers['Authorization'] = `Bearer ${session.accessToken}`;
+
+    // 4. Byg det nye options-objekt og kald den originale fetch.
+    const newOptions = {
+        ...options,
+        headers
+    };
+
+    return fetch(url, newOptions);
 }

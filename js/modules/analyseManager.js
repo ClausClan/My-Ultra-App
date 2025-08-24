@@ -34,7 +34,7 @@ async function renderAllAnalyseCharts() {
     
     let userProfile = {};
     try {
-        const response = await fetch('/api/get-profile');
+        const response = await authenticatedFetch('/api/get-profile');
         if (response.ok) userProfile = await response.json();
     } catch (error) {
         console.error("Kunne ikke hente profil til analyse:", error);
