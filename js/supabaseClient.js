@@ -1,10 +1,16 @@
 // js/supabaseClient.js
 
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+// 1. Vi henter 'createClient' funktionen fra det globale 'supabase' objekt,
+//    som blev oprettet af script-tagget i index.html.
+const { createClient } = supabase;
 
-// Hent din URL og anon key fra Supabase Dashboard > Settings > API
-const supabaseUrl = 'https://onkrxdzynpfeukjqwokj.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ua3J4ZHp5bnBmZXVranF3b2tqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ4NTUzMTMsImV4cCI6MjA3MDQzMTMxM30.GJTr-dwddImvuwkr9sYdXvKp7Y_KqKrRJuBtyXXPXpc';
+// 2. Hent din URL og anon key fra Supabase Dashboard > Settings > API
+const supabaseUrl = 'DIN_SUPABASE_URL'; // SKAL VÆRE INDENFOR ' '
+const supabaseAnonKey = 'DIN_SUPABASE_ANON_KEY'; // SKAL OGSÅ VÆRE INDENFOR ' '
 
-// Opret og eksporter en enkelt Supabase client, som hele appen kan bruge
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// 3. Opret og eksporter klienten, præcis som før.
+// Denne del ændrer sig ikke.
+export const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+
+// BEMÆRK: Vi omdøber den eksporterede klient til 'supabaseClient' for at undgå
+// navnekonflikt med den globale 'supabase' variabel.
