@@ -44,7 +44,7 @@ logoutButton.addEventListener('click', async () => {
 
 
 // Dette er den vigtigste del: Lyt til ændringer i login-status
-supabase.auth.onAuthStateChange((event, session) => {
+supabaseClient.auth.onAuthStateChange((event, session) => {
     if (session) {
         // Bruger er logget ind
         appContainer.style.display = 'block';
