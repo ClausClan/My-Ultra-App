@@ -23,12 +23,13 @@ export function estimateTssFromPlan(planText) {
 
 let baseTssPerHour = 60; // Default
     if (text.includes('recovery')) baseTssPerHour = 35;
+    if (text.includes('aktiv restitution')) baseTssPerHour = 35;
     if (text.includes('endurance')) baseTssPerHour = 65;
     if (text.includes('steady-state')) baseTssPerHour = 80;
     if (text.includes('fartleg')) baseTssPerHour = 85;
     if (text.includes('tempo')) baseTssPerHour = 90;
     if (text.includes('interval') || text.includes('vo2max')) baseTssPerHour = 105;
-    if (text.includes('styrke')) baseTssPerHour = 35;
+    if (text.includes('Strength')) baseTssPerHour = 35;
 
 
     if (durationInMinutes > 0) {
