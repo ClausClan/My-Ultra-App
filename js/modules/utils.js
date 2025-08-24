@@ -1,6 +1,6 @@
 // js/modules/utils.js
 
-import { supabase } from '../supabaseClient.js';
+import { supabaseClient  } from '../supabaseClient.js';
 
 export function estimateTssFromPlan(planText) {
     if (!planText) return 0;
