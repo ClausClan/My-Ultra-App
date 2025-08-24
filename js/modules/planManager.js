@@ -255,12 +255,26 @@ export function initializePlanPage() {
     fileInput?.addEventListener('change', (event) => {
         const file = event.target.files[0];
         if (!file) return;
+
+        // NYT: Vis spinneren med en specifik besked
+        const overlay = document.getElementById('loading-overlay');
+        const loadingText = document.getElementById('loading-text');
+        loadingText.textContent = 'Indlæser ny træningsplan...';
+        overlay.classList.remove('hidden');
+
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
-                await saveActivePlan(file.name, JSON.parse(e.target.result));
+                const planData = JSON.parse(e.target.result);
+                await saveActivePlan(file.name, planData);
+                // Ingen grund til at skjule spinneren her, da siden genindlæses
                 location.reload();
-            } catch (error) { alert("Ugyldig planfil."); }
+            } catch (error) {
+                console.error("Fejl ved import af plan:", error);
+                alert("Ugyldig planfil.");
+                // Skjul spinneren igen, hvis der opstår en fejl
+                overlay.classList.add('hidden');
+            }
         };
         reader.readAsText(file);
     });

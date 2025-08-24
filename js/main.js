@@ -289,6 +289,7 @@ async function main() {
     updateHomepageStatus();
     initializeAnalysePage();
     initializeStravaConnection();
+    document.getElementById('loading-overlay').classList.add('hidden');
 }
 
 document.addEventListener('DOMContentLoaded', main);
