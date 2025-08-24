@@ -1,5 +1,6 @@
 // planManager.js - FULD VERSION MED DATABASE OG KORREKT VISNING (14. AUGUST 2025)
 import { estimateTssFromPlan } from './utils.js';
+import { authenticatedFetch } from './utils.js';
 
 let activePlan = [];
 let activePlanName = '';

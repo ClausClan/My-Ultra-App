@@ -4,6 +4,7 @@ import { getActivePlan } from './planManager.js';
 import { getDailyLogs } from './calendarManager.js';
 import { estimateTssFromPlan } from './utils.js'; // Bruger nu den centrale funktion
 import { formatDateKey } from './utils.js';
+import { authenticatedFetch } from './utils.js';
 
 let performanceChart = null;
 let complianceChart = null;

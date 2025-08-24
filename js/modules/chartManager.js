@@ -2,6 +2,7 @@
 
 import { getDailyLogs } from './calendarManager.js';
 import { formatDateKey } from './utils.js';
+import { authenticatedFetch } from './utils.js';
 
 let homePageCharts = {};
 

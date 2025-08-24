@@ -5,6 +5,7 @@ import { updateHomePageDashboard } from './modules/chartManager.js';
 import { initializePlanPage, loadActivePlan, getActivePlan } from './modules/planManager.js';
 import { initializeAnalysePage } from './modules/analyseManager.js';
 import { initializeStravaConnection } from './modules/stravaManager.js';
+import { authenticatedFetch } from './utils.js';
 
 import { supabase } from './supabaseClient.js';
 
