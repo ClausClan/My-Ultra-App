@@ -184,6 +184,10 @@ function buildAdvancedPrompt(runnerInfo, goals) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() + 1);
     const finalGoal = goals.length > 0 ? goals.reduce((latest, goal) => (new Date(goal.date) > new Date(latest.date) ? goal : latest), goals[0]) : { date: new Date().toISOString().split('T')[0] };
+    // NYT: Beregn 5 uger efter sidste mål
+    const postRaceEndDate = new Date(finalGoal.date);
+    postRaceEndDate.setDate(postRaceEndDate.getDate() + 35); // 5 uger * 7 dage
+
     return `You are a world-class ultrarunning coach. Your task is to create a scientifically-backed training plan based on the user's profile and goals.
 The output MUST be a valid JSON array of objects. Do not output anything else.
 
@@ -193,7 +197,8 @@ The output MUST be a valid JSON array of objects. Do not output anything else.
 3.  **Periodization**
 4.  **Progressive Overload**
 5.  **Functional Strength**
-6.  **Use the following running workout types: endurance, steady-state, tempo, fartleg and VO2max runs**
+6.  **Use the following running workout types: recovery, endurance, steady-state, tempo, fartleg, Interval, and VO2max runs**
+7:  **Post-Race Recovery & Maintenance**
 
 **Runner's Information:**
 ${runnerProfile}
@@ -201,12 +206,19 @@ ${runnerProfile}
 **List of Goals:**
 ${goalsString}
 
+**Workout Types to use:**
+- For low intensity, use **"Endurance"** or **"Recovery"**.
+- For moderate intensity, use **"Steady-state"** or **"Fartleg"**.
+- For high intensity, use **"Tempo"**, **"Interval"**, or **"VO2max"**.
+- Also include **"Strength"** sessions.
+- For rest days, use **"Hvile"**.
+
 **JSON Object Structure:**
 {
   "date": "YYYY-MM-DD",
   "week": 0,
   "day": "Mandag",
-  "plan": "Description of the day's training using RPE for intensity.",
+  "plan": "Description of the day's training including one of the approved workout types and RPE for intensity.",
   "isRestDay": false,
   "isRaceDay": false
 }
@@ -218,6 +230,7 @@ ${goalsString}
 - \`plan\`: Clear training description using RPE. For goals, state goal type, e.g., "A-Mål: [Race Name]".
 - \`isRestDay\`: \`true\` for rest/active recovery.
 - \`isRaceDay\`: \`true\` for goal days.
+- **CRITICAL RULE:** The plan must extend for 5 weeks AFTER the final goal on ${finalGoal.date}, ending on or after ${postRaceEndDate.toISOString().split('T')[0]}. This post-race period should include a proper recovery phase followed by a maintenance training block.
 - **CRITICAL RULE:** The string value for the "plan" key must NOT contain unescaped double-quote (") characters.
 
 Generate the complete JSON plan now.`;

@@ -21,12 +21,15 @@ export function estimateTssFromPlan(planText) {
         }
     }
 
-    let baseTssPerHour = 50; // Default for "andet"
-    if (text.includes('langtur')) baseTssPerHour = 65;
-    if (text.includes('tempo') || text.includes('rpe 7-8')) baseTssPerHour = 90;
-    if (text.includes('bakke') || text.includes('intervaller')) baseTssPerHour = 105;
-    if (text.includes('let løb') || text.includes('rpe 3-4')) baseTssPerHour = 50;
+let baseTssPerHour = 60; // Default
+    if (text.includes('recovery')) baseTssPerHour = 35;
+    if (text.includes('endurance')) baseTssPerHour = 65;
+    if (text.includes('steady-state')) baseTssPerHour = 80;
+    if (text.includes('fartleg')) baseTssPerHour = 85;
+    if (text.includes('tempo')) baseTssPerHour = 90;
+    if (text.includes('interval') || text.includes('vo2max')) baseTssPerHour = 105;
     if (text.includes('styrke')) baseTssPerHour = 35;
+
 
     if (durationInMinutes > 0) {
         return Math.round((baseTssPerHour / 60) * durationInMinutes);

@@ -12,15 +12,17 @@ let weeks = [];
 function getWorkoutDetails(planText) {
     const text = planText.toLowerCase();
     const details = {
-        color: '#6b7280', // Grå (default)
+        color: '#6b7280', // Grå (default/Andet)
         type: 'Andet',
         rpe: ''
     };
 
-    if (text.includes('langtur')) { details.color = '#0ea5e9'; details.type = 'Langtur'; } // Blå
+    if (text.includes('recovery')) { details.color = '#16a34a'; details.type = 'Recovery'; } // Mørkegrøn
+    else if (text.includes('endurance')) { details.color = '#0ea5e9'; details.type = 'Endurance'; } // Blå
+    else if (text.includes('steady-state')) { details.color = '#0891b2'; details.type = 'Steady'; } // Cyan
     else if (text.includes('tempo')) { details.color = '#f97316'; details.type = 'Tempo'; } // Orange
-    else if (text.includes('bakke') || text.includes('intervaller')) { details.color = '#ef4444'; details.type = 'Høj Intensitet'; } // Rød
-    else if (text.includes('let løb') || text.includes('restitution')) { details.color = '#22c55e'; details.type = 'Let Løb'; } // Grøn
+    else if (text.includes('fartleg')) { details.color = '#f59e0b'; details.type = 'Fartleg'; } // Gul
+    else if (text.includes('interval') || text.includes('vo2max')) { details.color = '#ef4444'; details.type = 'Interval'; } // Rød
     else if (text.includes('styrke')) { details.color = '#8b5cf6'; details.type = 'Styrke'; } // Lilla
     else if (text.includes('hvile')) { details.type = 'Hvile'; }
     
