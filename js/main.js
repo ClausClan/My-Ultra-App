@@ -7,7 +7,7 @@ import { initializeAnalysePage } from './modules/analyseManager.js';
 import { initializeStravaConnection } from './modules/stravaManager.js';
 import { authenticatedFetch } from './modules/utils.js';
 
-import { supabaseClient } from 'supabaseClient.js';
+import { supabaseClient } from './supabaseClient.js';
 
 // DOM elementer
 const authContainer = document.getElementById('auth-container');
