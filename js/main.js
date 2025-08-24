@@ -144,19 +144,59 @@ function personalizeDashboard(name, pictureUrl) {
 }
 
 function updateHomepageStatus() {
-    const planStatusText = document.getElementById('planStatusText');
-    const todayTrainingText = document.getElementById('todayTrainingText');
+    const statusContainer = document.getElementById('plan-status-content');
+    if (!statusContainer) return;
+
     const activePlan = getActivePlan();
 
-    if (activePlan && activePlan.length > 0) {
-        planStatusText.textContent = `Aktiv plan er indlæst. God træning!`;
-        const today = new Date().toISOString().split('T')[0];
-        const todaysTraining = activePlan.find(day => day.date === today);
-        todayTrainingText.textContent = todaysTraining ? todaysTraining.plan : 'Ingen træning planlagt i dag.';
-    } else {
-        planStatusText.textContent = 'Ingen aktiv plan. Importer en plan for at komme i gang.';
-        todayTrainingText.textContent = 'Ingen træning planlagt i dag.';
+    // Scenarie 1: Ingen plan er aktiv
+    if (!activePlan || activePlan.length === 0) {
+        statusContainer.innerHTML = '<p>Ingen aktiv plan. Importer en plan for at komme i gang.</p>';
+        return;
     }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Nulstil tiden for præcis dato-sammenligning
+
+    const startDate = new Date(activePlan[0].date);
+    const totalDaysInPlan = activePlan.length;
+
+    // Beregn nuværende dag i planen
+    const dayNumber = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    const progressText = `Dag ${dayNumber} af ${totalDaysInPlan} dage i planen gennemført.`;
+
+    // Find alle fremtidige løb
+    const futureRaces = activePlan.filter(day => {
+        const planText = day.plan.toLowerCase().trim();
+        const isRace = planText.startsWith('a-mål:') || planText.startsWith('b-mål:') || planText.startsWith('c-mål:');
+        return isRace && new Date(day.date) >= today;
+    });
+
+    let raceText = '';
+    if (futureRaces.length > 0) {
+        // Næste løb er det første i den sorterede liste
+        const nextRace = futureRaces[0];
+        const nextRaceDate = new Date(nextRace.date);
+        const daysToRace = Math.ceil((nextRaceDate - today) / (1000 * 60 * 60 * 24));
+        const formattedDate = nextRaceDate.toLocaleDateString('da-DK', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        raceText = `Der er ${daysToRace} dage til næste løb, som er den ${formattedDate}.`;
+    } else {
+        // Tjek om det sidste mål i planen er overstået
+        const allRaces = activePlan.filter(day => day.plan.toLowerCase().trim().includes('mål:'));
+        if (allRaces.length > 0) {
+            const lastRace = allRaces[allRaces.length - 1];
+            if (new Date(lastRace.date) < today) {
+                raceText = 'Sidste løb i planen er gennemført - tid til at lave en ny plan!';
+            }
+        }
+    }
+
+    // Byg den endelige HTML og indsæt den
+    statusContainer.innerHTML = `
+        <p class="font-semibold text-green-700">Aktiv plan er indlæst. God træning!</p>
+        <p>${progressText}</p>
+        <p>${raceText}</p>
+    `;
 }
 
 // --- NY FUNKTION TIL EVENT LISTENERS ---
