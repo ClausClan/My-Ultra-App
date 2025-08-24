@@ -24,12 +24,13 @@ function getWorkoutDetails(planText) {
     } 
     // Hvis det ikke er et mål, så tjek for de andre typer
     else if (text.includes('recovery')) { details.color = '#16a34a'; details.type = 'Recovery'; }
+    else if (text.includes('aktiv restitution')) { details.color = '#16a34a'; details.type = 'Recovery'; }
     else if (text.includes('endurance')) { details.color = '#0ea5e9'; details.type = 'Endurance'; }
     else if (text.includes('steady-state')) { details.color = '#0891b2'; details.type = 'Steady'; }
     else if (text.includes('tempo')) { details.color = '#f97316'; details.type = 'Tempo'; }
     else if (text.includes('fartleg')) { details.color = '#f59e0b'; details.type = 'Fartleg'; }
     else if (text.includes('interval') || text.includes('vo2max')) { details.color = '#ef4444'; details.type = 'Interval'; }
-    else if (text.includes('styrke')) { details.color = '#8b5cf6'; details.type = 'Styrke'; }
+    else if (text.includes('Strength')) { details.color = '#8b5cf6'; details.type = 'Styrke'; }
     else if (text.includes('hvile')) { details.type = 'Hvile'; }
     
     const rpeMatch = text.match(/rpe\s*\d(-\d)?/);
