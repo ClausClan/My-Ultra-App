@@ -232,6 +232,18 @@ ${goalsString}
 - Also include **"Strength"** sessions.
 - For rest days, use **"Hvile"**.
 
+**--- NY SEKTION: REGLER FOR STYRKETRÆNING ---**
+**Strength Training Rules:**
+For every "Strength" workout, you MUST specify:
+1.  **Duration:** The total time for the session in minutes (e.g., "45 min").
+2.  **Exercises:** A list of specific exercises.
+3.  **Sets and Reps:** The number of sets and repetitions for each exercise (e.g., "3x10 squats").
+The exercises MUST be evidence-based and relevant for ultrarunning, focusing on:
+  - **Core stability:** (e.g., planks, bird-dog, dead bug).
+  - **Lower body power and stability:** (e.g., squats, lunges, step-ups, calf raises).
+  - **Injury prevention:** (e.g., glute bridges, hip abduction exercises).
+**---------------------------------------------**
+
 **JSON Object Structure:**
 {
   "date": "YYYY-MM-DD",
