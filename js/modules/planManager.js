@@ -30,7 +30,7 @@ function getWorkoutDetails(planText) {
     else if (text.includes('tempo')) { details.color = '#f97316'; details.type = 'Tempo'; }
     else if (text.includes('fartleg')) { details.color = '#f59e0b'; details.type = 'Fartleg'; }
     else if (text.includes('interval') || text.includes('vo2max')) { details.color = '#ef4444'; details.type = 'Interval'; }
-    else if (text.includes('Strength')) { details.color = '#8b5cf6'; details.type = 'Strength'; }
+    else if (text.includes('strength')) { details.color = '#8b5cf6'; details.type = 'Strength'; }
     else if (text.includes('hvile')) { details.type = 'Hvile'; }
     
     const rpeMatch = text.match(/rpe\s*\d(-\d)?/);
