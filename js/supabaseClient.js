@@ -12,4 +12,5 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Eksporter klienten, så andre filer (som main.js) kan importere og bruge den.
-export default supabaseClient;
+// RETTELSE: Fra 'export default' til en navngiven eksport med { }.
+export { supabaseClient };
