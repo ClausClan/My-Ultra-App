@@ -1,8 +1,29 @@
 // js/modules/utils.js
 
-import { supabaseClient  } from '../supabaseClient.js';
+// ## Trin 1: Korrekt import af Supabase-klienten ##
+// Stien starter med '/', hvilket er den mest robuste måde at løse import-fejl på.
+import { supabaseClient } from '/js/supabaseClient.js';
 
-export function estimateTssFromPlan(planText) {
+
+// ## Trin 2: Funktion til sikre API-kald ##
+// Opdateret til at bruge den importerede supabaseClient til at hente brugerens session.
+async function authenticatedFetch(url, options = {}) {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) {
+        throw new Error('Bruger er ikke logget ind. Kan ikke lave et autentificeret API-kald.');
+    }
+    const headers = {
+        ...options.headers,
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+    };
+    return fetch(url, { ...options, headers });
+}
+
+
+// ## Trin 3: Din unikke TSS-beregningslogik ##
+// Dette er din præcise kode, bevaret 1:1.
+function estimateTssFromPlan(planText) {
     if (!planText) return 0;
     const text = planText.toLowerCase();
 
@@ -23,7 +44,7 @@ export function estimateTssFromPlan(planText) {
         }
     }
 
-let baseTssPerHour = 60; // Default
+    let baseTssPerHour = 60; // Default
     if (text.includes('recovery')) baseTssPerHour = 35;
     if (text.includes('aktiv restitution')) baseTssPerHour = 35;
     if (text.includes('endurance')) baseTssPerHour = 65;
@@ -33,7 +54,6 @@ let baseTssPerHour = 60; // Default
     if (text.includes('interval') || text.includes('vo2max')) baseTssPerHour = 105;
     if (text.includes('Strength')) baseTssPerHour = 35;
 
-
     if (durationInMinutes > 0) {
         return Math.round((baseTssPerHour / 60) * durationInMinutes);
     }
@@ -41,48 +61,6 @@ let baseTssPerHour = 60; // Default
     return baseTssPerHour;
 }
 
-export function formatDateKey(date) {
-    const d = new Date(date);
-    const year = d.getFullYear();
-    // getMonth() er 0-baseret, så vi lægger 1 til
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
 
-/**
- * En "wrapper" omkring den normale fetch-funktion, som automatisk tilføjer
- * brugerens authentication token.
- * @param {string} url - Den API-URL, der skal kaldes.
- * @param {object} options - Et standard options-objekt til fetch (f.eks. method, body).
- * @returns {Promise<Response>} - Et promise, der resolver til fetch-responset.
- */
-export async function authenticatedFetch(url, options = {}) {
-    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession(); // <-- CORRECTION 2
-
-    if (sessionError) {
-        console.error('Error fetching session:', sessionError);
-        window.location.href = '/'; 
-        return;
-    }
-
-    if (!session) {
-        console.warn('Attempted to make an authenticated call without being logged in.');
-        window.location.href = '/';
-        return;
-    }
-
-    const headers = {
-        ...options.headers,
-        'Content-Type': 'application/json'
-    };
-    
-    headers['Authorization'] = `Bearer ${session.accessToken}`;
-
-    const newOptions = {
-        ...options,
-        headers
-    };
-
-    return fetch(url, newOptions);
-}
+// ## Trin 4: Korrekt eksport af begge funktioner ##
+export { authenticatedFetch, estimateTssFromPlan };
