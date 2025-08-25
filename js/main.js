@@ -18,6 +18,8 @@ const logoutButton = document.getElementById('logout-button');
 const emailInput = document.getElementById('email-input');
 const passwordInput = document.getElementById('password-input');
 
+let appInitialized = false; // Sikrer, at vi kun starter appen én gang
+
 // Håndter login
 loginButton.addEventListener('click', async () => {
     const { error } = await supabaseClient.auth.signInWithPassword({
@@ -33,8 +35,11 @@ signupButton.addEventListener('click', async () => {
         email: emailInput.value,
         password: passwordInput.value,
     });
-    if (error) console.error('Fejl ved oprettelse:', error.message);
-    else alert('Bruger oprettet! Tjek din email for at bekræfte.');
+    if (error) {
+        console.error('Fejl ved oprettelse:', error.message);
+    } else {
+        alert('Bruger oprettet! Tjek din email for at bekræfte.');
+    }
 });
 
 // Håndter logud
@@ -42,20 +47,26 @@ logoutButton.addEventListener('click', async () => {
     await supabaseClient.auth.signOut();
 });
 
-
-// Dette er den vigtigste del: Lyt til ændringer i login-status
+// "Vagten", der styrer, hvad der vises, og hvornår appen starter
 supabaseClient.auth.onAuthStateChange((event, session) => {
     if (session) {
         // Bruger er logget ind
         appContainer.style.display = 'block';
         authContainer.style.display = 'none';
         logoutButton.style.display = 'block';
-        // Her skal du kalde dine funktioner for at hente data (f.eks. loadCalendarData())
+
+        // Start KUN appen (og hent data), hvis den ikke allerede kører
+        if (!appInitialized) {
+            main(); // Kalder din funktion, der henter al data
+            appInitialized = true;
+        }
+
     } else {
         // Bruger er logget ud
         appContainer.style.display = 'none';
         authContainer.style.display = 'block';
         logoutButton.style.display = 'none';
+        appInitialized = false; // Nulstil, så appen kan starte igen ved næste login
     }
 });
 
@@ -371,4 +382,4 @@ async function main() {
     document.getElementById('loading-overlay').classList.add('hidden');
 }
 
-document.addEventListener('DOMContentLoaded', main);
+//document.addEventListener('DOMContentLoaded', main);
