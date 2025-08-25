@@ -1,16 +1,15 @@
 // js/supabaseClient.js
 
-// 1. Vi henter 'createClient' funktionen fra det globale 'supabase' objekt,
-//    som blev oprettet af script-tagget i index.html.
-const { createClient } = supabase;
+// Importer 'createClient' funktionen direkte fra Supabase's officielle CDN.
+// Dette er den moderne måde at gøre det på i et modul-system.
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-// 2. Hent din URL og anon key fra Supabase Dashboard > Settings > API
-const supabaseUrl = 'https://onkrxdzynpfeukjqwokj.supabase.co'; // SKAL VÆRE INDENFOR ' '
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ua3J4ZHp5bnBmZXVranF3b2tqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ4NTUzMTMsImV4cCI6MjA3MDQzMTMxM30.GJTr-dwddImvuwkr9sYdXvKp7Y_KqKrRJuBtyXXPXpc'; // SKAL OGSÅ VÆRE INDENFOR ' '
+// Udskift disse med dine faktiske nøgler fra din Supabase-projektindstillinger.
+const SUPABASE_URL = 'https://onkrxdzynpfeukjqwokj.supabase.co'; 
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ua3J4ZHp5bnBmZXVranF3b2tqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ4NTUzMTMsImV4cCI6MjA3MDQzMTMxM30.GJTr-dwddImvuwkr9sYdXvKp7Y_KqKrRJuBtyXXPXpc';
 
-// 3. Opret og eksporter klienten, præcis som før.
-// Denne del ændrer sig ikke.
-export const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+// Opret klienten én gang.
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// BEMÆRK: Vi omdøber den eksporterede klient til 'supabaseClient' for at undgå
-// navnekonflikt med den globale 'supabase' variabel.
+// Eksporter klienten, så andre filer (som main.js) kan importere og bruge den.
+export default supabaseClient;
