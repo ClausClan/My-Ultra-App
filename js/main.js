@@ -1,158 +1,389 @@
-// js/main.js
+// main.js - FULD VERSION DER HENTER PLAN VED OPSTART (14. AUGUST 2025)
 
-// ## Trin 1: Importer alle nødvendige moduler og klienter ##
-// -----------------------------------------------------------------
-
-// Importer den delte Supabase-klient. Dette er den vigtigste nye linje.
-import { supabaseClient } from './supabaseClient.js'; 
-
-// Importer appens øvrige moduler som før.
+import supabaseClient from './supabaseClient.js';
 import { initializeCalendar } from './modules/calendarManager.js';
-import { initializePlan } from './modules/planManager.js';
-import { initializeDashboardCharts } from './modules/chartManager.js';
-import { initializeAnalysis } from './modules/analyseManager.js';
-import { initializeStrava } from './modules/stravaManager.js';
+import { updateHomePageDashboard } from './modules/chartManager.js';
+import { initializePlanPage, loadActivePlan, getActivePlan } from './modules/planManager.js';
+import { initializeAnalysePage } from './modules/analyseManager.js';
+import { initializeStravaConnection } from './modules/stravaManager.js';
 import { authenticatedFetch } from './modules/utils.js';
 
-// ## Trin 2: Definer de vigtigste HTML-elementer ##
-// -----------------------------------------------------------------
-
-const loginSection = document.getElementById('login-section');
-const appSection = document.getElementById('app-section');
-const loadingIndicator = document.getElementById('loading-indicator');
-
-const navLinks = document.querySelectorAll('nav a');
-const sections = document.querySelectorAll('main > section');
-
-const profileForm = document.getElementById('profile-form');
+// DOM elementer
+const authContainer = document.getElementById('auth-container');
+const appContainer = document.getElementById('app-container');
+const loginButton = document.getElementById('login-button');
+const signupButton = document.getElementById('signup-button');
 const logoutButton = document.getElementById('logout-button');
+const emailInput = document.getElementById('email-input');
+const passwordInput = document.getElementById('password-input');
 
-// ## Trin 3: Applikationens "Hovedmotor" ##
-// -----------------------------------------------------------------
+// Skjul alt i starten for at undgå at UI "blinker"
+if (loginSection) loginSection.style.display = 'none';
+if (appSection) appSection.style.display = 'none';
+if (loadingIndicator) loadingIndicator.style.display = 'block';
 
-// Denne funktion henter al data, når en bruger er logget ind.
-async function main() {
-    console.log("main() starter: Henter brugerdata...");
-    loadingIndicator.style.display = 'block'; // Vis loader
+let appInitialized = false; // Sikrer, at vi kun starter appen én gang
 
-    try {
-        // Initialiser alle appens moduler parallelt for hurtigere indlæsning.
-        await Promise.all([
-            initializeDashboardCharts(),
-            initializeCalendar(),
-            initializePlan(),
-            initializeAnalysis(),
-            initializeStrava(),
-            loadProfile() // Hent og vis løberens profil.
-        ]);
-        
-        console.log("main() færdig: Alle moduler er initialiseret.");
-        
-        // Sæt startsiden til 'Hjem' efter alt er hentet.
-        document.querySelector('nav a[data-target="home"]').click();
+// Håndter login
+loginButton.addEventListener('click', async () => {
+    const { error } = await supabaseClient.auth.signInWithPassword({
+        email: emailInput.value,
+        password: passwordInput.value,
+    });
+    if (error) console.error('Fejl ved login:', error.message);
+});
 
-    } catch (error) {
-        console.error("Fejl under initialisering af appen:", error);
-        alert("Der skete en fejl under indlæsning af dine data. Prøv venligst at genindlæse siden.");
-    } finally {
-        loadingIndicator.style.display = 'none'; // Skjul loader
+// Håndter oprettelse af bruger
+signupButton.addEventListener('click', async () => {
+    const { error } = await supabaseClient.auth.signUp({
+        email: emailInput.value,
+        password: passwordInput.value,
+    });
+    if (error) {
+        console.error('Fejl ved oprettelse:', error.message);
+    } else {
+        alert('Bruger oprettet! Tjek din email for at bekræfte.');
     }
-}
+});
 
+// Håndter logud
+logoutButton.addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
+});
 
-// ## Trin 4: Håndtering af Bruger-Session (Det nye omdrejningspunkt) ##
-// -----------------------------------------------------------------
-
-// Denne listener reagerer, når en bruger logger ind, logger ud, eller når siden indlæses.
-// Dette er nu det ENESTE startpunkt for hele applikationen.
-supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    console.log('onAuthStateChange event:', event);
-
+// "Vagten", der styrer, hvad der vises, og hvornår appen starter
+supabaseClient.auth.onAuthStateChange((event, session) => {
     if (session) {
-        // **SCENARIE: Brugeren er logget ind.**
-        console.log("Bruger er logget ind. Viser app og skjuler login.");
-        appSection.style.display = 'block';
-        loginSection.style.display = 'none';
-        
-        // Kald hovedfunktionen for at hente og vise brugerens data.
-        await main();
+        // Bruger er logget ind
+        appContainer.style.display = 'block';
+        authContainer.style.display = 'none';
+        logoutButton.style.display = 'block';
+
+        // Start KUN appen (og hent data), hvis den ikke allerede kører
+        if (!appInitialized) {
+            main(); // Kalder din funktion, der henter al data
+            appInitialized = true;
+        }
 
     } else {
-        // **SCENARIE: Brugeren er IKKE logget ind.**
-        console.log("Bruger er ikke logget ind. Viser login-skærm.");
-        appSection.style.display = 'none';
-        loginSection.style.display = 'block';
-        loadingIndicator.style.display = 'none';
+        // Bruger er logget ud
+        appContainer.style.display = 'none';
+        authContainer.style.display = 'block';
+        logoutButton.style.display = 'none';
+        appInitialized = false; // Nulstil, så appen kan starte igen ved næste login
     }
 });
 
 
-// ## Trin 5: Opsæt Event Listeners (Navigation, Profil, Logout) ##
-// -----------------------------------------------------------------
+// --- GLOBALE VARIABLER ---
+let userProfile = null;
 
-// Navigation i appen (skift mellem sektioner).
-navLinks.forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetId = link.getAttribute('data-target');
-        
-        sections.forEach(section => {
-            section.style.display = section.id === targetId ? 'block' : 'none';
-        });
+// --- HJÆLPEFUNKTIONER ---
 
-        navLinks.forEach(navLink => {
-            navLink.classList.remove('active');
-        });
-        link.classList.add('active');
+function collectProfileDataFromForm() {
+    const profileData = {};
+    document.querySelectorAll('#loberdata .data-input').forEach(input => {
+        if (input.value) profileData[input.id] = input.value;
     });
-});
 
-// Gem løberprofil.
-profileForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(profileForm);
-    const profileData = Object.fromEntries(formData.entries());
-    
-    try {
-        const response = await authenticatedFetch('/api/save-profile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(profileData),
-        });
-        if (!response.ok) throw new Error('Failed to save profile');
-        alert('Profil gemt!');
-    } catch (error) {
-        console.error('Fejl ved gemning af profil:', error);
-        alert('Der skete en fejl. Kunne ikke gemme profilen.');
+    const hiddenPicUrlInput = document.getElementById('profilePictureUrl');
+    if (hiddenPicUrlInput && hiddenPicUrlInput.value) {
+        profileData.profilePicture = hiddenPicUrlInput.value;
     }
-});
 
-// Hent og vis eksisterende profil.
-async function loadProfile() {
-    try {
-        const response = await authenticatedFetch('/api/get-profile');
-        if (!response.ok) throw new Error('Failed to fetch profile');
-        const profile = await response.json();
-        
-        // Udfyld formularen med de hentede data.
-        for (const key in profile) {
-            if (profileForm.elements[key]) {
-                profileForm.elements[key].value = profile[key];
+    const zoneTypes = { hr: 'hr_zones', power: 'power_zones', pace: 'pace_zones' };
+    for (const prefix in zoneTypes) {
+        const arrayKey = zoneTypes[prefix];
+        profileData[arrayKey] = [];
+        for (let i = 1; i <= 5; i++) {
+            const input = document.getElementById(`${prefix}Zone${i}`);
+            if (input) profileData[arrayKey].push(input.value || null);
+        }
+    }
+    return profileData;
+}
+
+function populateFormWithProfileData(profileData) {
+    if (!profileData) return;
+
+    document.querySelectorAll('#loberdata .data-input').forEach(input => {
+        input.value = profileData[input.id] || '';
+    });
+    
+    const profilePicPreview = document.getElementById('profilePicturePreview');
+    const hiddenPicUrlInput = document.getElementById('profilePictureUrl');
+    if (profileData.profilePicture) {
+        if(profilePicPreview) {
+            profilePicPreview.src = profileData.profilePicture;
+            profilePicPreview.style.display = 'block';
+        }
+        if(hiddenPicUrlInput) hiddenPicUrlInput.value = profileData.profilePicture;
+    } else {
+        if(profilePicPreview) profilePicPreview.style.display = 'none';
+        if(hiddenPicUrlInput) hiddenPicUrlInput.value = '';
+    }
+
+    const zoneTypes = { hr: 'hr_zones', power: 'power_zones', pace: 'pace_zones' };
+    for (const prefix in zoneTypes) {
+        const arrayKey = zoneTypes[prefix];
+        for (let i = 1; i <= 5; i++) {
+            const input = document.getElementById(`${prefix}Zone${i}`);
+            if (input) {
+                const value = (profileData[arrayKey] && profileData[arrayKey][i - 1]) ? profileData[arrayKey][i - 1] : '';
+                input.value = value;
             }
         }
+    }
+    
+    initializeProfilePageCalculations();
+}
+
+async function loadProfileData() {
+    try {
+        const response = await authenticatedFetch('/api/get-profile');
+        if (!response.ok) {
+            if (response.status === 404 || response.status === 204) return;
+            throw new Error('Serverfejl ved hentning af profil');
+        }
+        userProfile = await response.json(); 
+        
+        populateFormWithProfileData(userProfile);
+        personalizeDashboard(userProfile?.runnerName, userProfile?.profilePicture);
+
     } catch (error) {
-        console.error('Kunne ikke hente profil:', error);
+        console.error("Fejl ved indlæsning af profil:", error);
     }
 }
 
-// Log ud.
-logoutButton.addEventListener('click', async () => {
-    const { error } = await supabaseClient.auth.signOut();
-    if (error) {
-        console.error('Fejl ved log ud:', error);
-    } else {
-        // onAuthStateChange vil automatisk fange dette og vise login-skærmen.
-        // Du kan eventuelt tvinge en genindlæsning for at rydde al state helt.
-        window.location.reload(); 
+function initializeProfilePageCalculations() {
+    const runnerDobInput = document.getElementById('runnerDob');
+    const calculatedAgeEl = document.getElementById('calculatedAge');
+    
+    const calculateAge = (dobString) => {
+        if (!dobString) return '-';
+        const birthDate = new Date(dobString);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+        return age;
+    };
+    
+    runnerDobInput?.addEventListener('input', () => {
+        if(calculatedAgeEl) calculatedAgeEl.textContent = calculateAge(runnerDobInput.value);
+    });
+
+    if (runnerDobInput && runnerDobInput.value) {
+         if(calculatedAgeEl) calculatedAgeEl.textContent = calculateAge(runnerDobInput.value);
     }
-});
+}
+
+function personalizeDashboard(name, pictureUrl) {
+    const nameEl = document.getElementById('dashboard-runner-name');
+    const thumbEl = document.getElementById('dashboard-thumbnail');
+
+    if (nameEl && name) {
+        nameEl.textContent = `Velkommen, ${name}`;
+    } else if (nameEl) {
+        nameEl.textContent = `Min Løberprofil`;
+    }
+
+    if (thumbEl && pictureUrl) {
+        thumbEl.src = pictureUrl;
+        thumbEl.style.display = 'block';
+    } else if (thumbEl) {
+        thumbEl.style.display = 'none';
+        thumbEl.src = '';
+    }
+}
+
+function updateHomepageStatus() {
+    const statusContainer = document.getElementById('plan-status-content');
+    if (!statusContainer) return;
+
+    const activePlan = getActivePlan();
+
+    // Scenarie 1: Ingen plan er aktiv
+    if (!activePlan || activePlan.length === 0) {
+        statusContainer.innerHTML = '<p>Ingen aktiv plan. Importer en plan for at komme i gang.</p>';
+        return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Nulstil tiden for præcis dato-sammenligning
+
+    const startDate = new Date(activePlan[0].date);
+    const totalDaysInPlan = activePlan.length;
+
+    // Beregn nuværende dag i planen
+    const dayNumber = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    const progressText = `Dag ${dayNumber} af ${totalDaysInPlan} dage i planen gennemført.`;
+
+    // Find alle fremtidige løb
+    const futureRaces = activePlan.filter(day => {
+        const planText = day.plan.toLowerCase().trim();
+        const isRace = planText.startsWith('a-mål:') || planText.startsWith('b-mål:') || planText.startsWith('c-mål:');
+        return isRace && new Date(day.date) >= today;
+    });
+
+    let raceText = '';
+    if (futureRaces.length > 0) {
+        // Næste løb er det første i den sorterede liste
+        const nextRace = futureRaces[0];
+        const nextRaceDate = new Date(nextRace.date);
+        const daysToRace = Math.ceil((nextRaceDate - today) / (1000 * 60 * 60 * 24));
+        const formattedDate = nextRaceDate.toLocaleDateString('da-DK', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        raceText = `Der er ${daysToRace} dage til næste løb, som er den ${formattedDate}.`;
+    } else {
+        // Tjek om det sidste mål i planen er overstået
+        const allRaces = activePlan.filter(day => day.plan.toLowerCase().trim().includes('mål:'));
+        if (allRaces.length > 0) {
+            const lastRace = allRaces[allRaces.length - 1];
+            if (new Date(lastRace.date) < today) {
+                raceText = 'Sidste løb i planen er gennemført - tid til at lave en ny plan!';
+            }
+        }
+    }
+
+    // Byg den endelige HTML og indsæt den
+    statusContainer.innerHTML = `
+        <p class="font-semibold text-green-700">Aktiv plan er indlæst. God træning!</p>
+        <p>${progressText}</p>
+        <p>${raceText}</p>
+    `;
+}
+
+// --- NY FUNKTION TIL EVENT LISTENERS ---
+function setupEventListeners() {
+    const navButtons = document.querySelectorAll('.nav-btn');
+    const pages = document.querySelectorAll('.page');
+    navButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            navButtons.forEach(btn => btn.classList.remove('active'));
+            pages.forEach(page => page.classList.remove('active'));
+            button.classList.add('active');
+            document.getElementById(button.dataset.page).classList.add('active');
+            
+            if (button.dataset.page === 'hjem' && userProfile) {
+                personalizeDashboard(userProfile.runnerName, userProfile.profilePicture);
+            }
+        });
+    });
+    
+    const profilePicInput = document.getElementById('profilePictureInput');
+    profilePicInput?.addEventListener('change', async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const supabase = await getSupabaseClient();
+        if (!supabase) return alert("Fejl: Kunne ikke forbinde til storage-servicen.");
+
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        alert("Uploader billede...");
+        try {
+            await supabase.storage.from('profile-pictures').upload(filePath, file);
+            const { data: { publicUrl } } = supabase.storage.from('profile-pictures').getPublicUrl(filePath);
+            
+            document.getElementById('profilePicturePreview').src = publicUrl;
+            document.getElementById('profilePicturePreview').style.display = 'block';
+            document.getElementById('profilePictureUrl').value = publicUrl;
+            
+            alert('Billedet er uploadet. Husk at trykke "Gem Profil i Database".');
+        } catch (error) {
+            console.error('Fejl ved upload af billede:', error);
+            alert(`Fejl: ${error.message}`);
+        }
+    });
+    
+    document.getElementById('saveProfileBtn')?.addEventListener('click', async () => {
+        const saveButton = document.getElementById('saveProfileBtn');
+        saveButton.textContent = "Gemmer...";
+        saveButton.disabled = true;
+        const profileData = collectProfileDataFromForm();
+        try {
+            const response = await authenticatedFetch('/api/save-profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(profileData)
+            });
+            if (!response.ok) throw new Error("Serveren kunne ikke gemme profilen.");
+            
+            userProfile = profileData;
+            personalizeDashboard(userProfile.runnerName, userProfile.profilePicture);
+            saveButton.textContent = "Profil Gemt!";
+        } catch (error) {
+            console.error("Fejl ved at gemme profil:", error);
+            saveButton.textContent = "Fejl - Prøv Igen";
+        } finally {
+            setTimeout(() => {
+                saveButton.textContent = "Gem Profil i Database";
+                saveButton.disabled = false;
+            }, 2000);
+        }
+    });
+
+    document.getElementById('exportProfileBtn')?.addEventListener('click', () => {
+        const profileData = collectProfileDataFromForm();
+        const dataStr = JSON.stringify(profileData, null, 2);
+        const dataBlob = new Blob([dataStr], {type: "application/json"});
+        const link = document.createElement('a');
+        link.download = 'min_ultra_app_profil.json';
+        link.href = URL.createObjectURL(dataBlob);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+    });
+
+    const loadProfileBtn = document.getElementById('loadProfileBtn');
+    const profileFileInput = document.getElementById('profileFileInput');
+    loadProfileBtn?.addEventListener('click', () => profileFileInput.click());
+
+    profileFileInput?.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                populateFormWithProfileData(importedData);
+                alert('Profilen er indlæst. Tryk på "Gem Profil i Database" for at gemme ændringerne permanent.');
+            } catch (error) {
+                console.error("Fejl ved indlæsning af profilfil:", error);
+                alert("Ugyldig profilfil.");
+            }
+        };
+        reader.readAsText(file);
+    });
+}
+
+
+async function main() {
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.id = 'profilePictureUrl';
+    document.body.appendChild(hiddenInput);
+
+    // Trin 1: Hent al kritisk data fra databasen FØRST
+    await loadActivePlan();
+    await loadProfileData();
+    const allLogs = await initializeCalendar(); // VENT på data og gem resultatet
+
+    // Trin 2: Når data er hentet, initialiser resten
+    setupEventListeners();
+    
+    // OPDATERET: Vi giver de hentede logs direkte til dashboardet
+    updateHomePageDashboard(allLogs);
+    
+    initializePlanPage();
+    initializeProfilePageCalculations();
+    updateHomepageStatus();
+    initializeAnalysePage();
+    initializeStravaConnection();
+    document.getElementById('loading-overlay').classList.add('hidden');
+}
+
+//document.addEventListener('DOMContentLoaded', main);
