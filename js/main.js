@@ -10,7 +10,7 @@ import { supabaseClient } from './supabaseClient.js';
 import { initializeCalendar } from './modules/calendarManager.js';
 import { initializePlan } from './modules/planManager.js';
 import { initializeDashboardCharts } from './modules/chartManager.js';
-import { initializeAnalysis } from './modules/analyseManager.js';
+import { initializeAnalysePage as initializeAnalysis } from './modules/analyseManager.js';
 import { initializeStrava } from './modules/stravaManager.js';
 import { authenticatedFetch } from './modules/utils.js';
 
