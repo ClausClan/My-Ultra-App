@@ -1,12 +1,7 @@
 // js/modules/utils.js
 
-// ## Trin 1: Korrekt import af Supabase-klienten ##
-// Stien starter med '/', hvilket er den mest robuste måde at løse import-fejl på.
 import { supabaseClient } from '/js/supabaseClient.js';
 
-
-// ## Trin 2: Funktion til sikre API-kald ##
-// Opdateret til at bruge den importerede supabaseClient til at hente brugerens session.
 async function authenticatedFetch(url, options = {}) {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) {
@@ -20,9 +15,6 @@ async function authenticatedFetch(url, options = {}) {
     return fetch(url, { ...options, headers });
 }
 
-
-// ## Trin 3: Din unikke TSS-beregningslogik ##
-// Dette er din præcise kode, bevaret 1:1.
 function estimateTssFromPlan(planText) {
     if (!planText) return 0;
     const text = planText.toLowerCase();
@@ -61,6 +53,17 @@ function estimateTssFromPlan(planText) {
     return baseTssPerHour;
 }
 
+// ## NYT: Genindsat formatDateKey funktion ##
+// Denne funktion konverterer et Date-objekt til en 'YYYY-MM-DD' streng.
+function formatDateKey(date) {
+  if (!(date instanceof Date)) {
+    date = new Date(date);
+  }
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
-// ## Trin 4: Korrekt eksport af begge funktioner ##
-export { authenticatedFetch, estimateTssFromPlan };
+// ## OPDATERET: Eksporterer nu ALLE tre funktioner ##
+export { authenticatedFetch, estimateTssFromPlan, formatDateKey };
