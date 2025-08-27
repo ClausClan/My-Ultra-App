@@ -1,5 +1,3 @@
-// Fil: /api/get-profile.js - FORBEDRET VERSION
-
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -12,23 +10,26 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Vi fjerner .single() og håndterer selv resultatet
+    // 1. Hent brugeren fra access token
+    const { data: { user } } = await supabase.auth.getUser(req.headers.authorization.split(' ')[1]);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    // 2. Hent profilen for den specifikke bruger
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .limit(1); // Find højst 1 række
+      .eq('user_id', user.id) // Brug brugerens ID
+      .single(); // Forvent kun én profil
 
-    if (error) { throw error; }
-
-    // NYT: Tjek om vi rent faktisk fandt en profil
-    if (!data || data.length === 0) {
-      // Ingen profil fundet. Dette er en gyldig situation.
-      // Vi sender et "204 No Content"-svar tilbage i stedet for en fejl.
-      return res.status(204).end();
+    if (error) {
+        // Hvis fejlen er "PGRST116" (ingen rækker fundet), er det ikke en fejl
+        if (error.code === 'PGRST116') {
+             return res.status(204).end();
+        }
+        throw error;
     }
 
-    // Hvis vi fandt en profil, send den første (og eneste) tilbage som et objekt
-    res.status(200).json(data[0]);
+    res.status(200).json(data);
 
   } catch (err) {
     console.error("Fejl ved hentning af profil:", err);

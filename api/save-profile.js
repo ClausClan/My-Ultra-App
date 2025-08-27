@@ -1,4 +1,3 @@
-// Fil: /api/save-profile.js
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -11,15 +10,18 @@ export default async function handler(req, res) {
   }
 
   try {
+    // 1. Hent brugeren fra access token
+    const { data: { user } } = await supabase.auth.getUser(req.headers.authorization.split(' ')[1]);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
     const profileData = req.body;
+    // 2. Tilføj brugerens ID til de data, vi gemmer. Fjern det faste ID.
+    const dataToSave = { ...profileData, user_id: user.id };
 
-    // Sæt et fast ID, da vi kun har én profil indtil videre.
-    // Dette sikrer, at 'upsert' altid opdaterer den samme række.
-    const dataToSave = { id: 1, ...profileData };
-
+    // 3. Brug upsert med user_id som onConflict-kolonne for at sikre, at brugeren kun har én profil.
     const { error } = await supabase
       .from('profiles')
-      .upsert(dataToSave);
+      .upsert(dataToSave, { onConflict: 'user_id' });
 
     if (error) { throw error; }
 
