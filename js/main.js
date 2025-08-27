@@ -3,15 +3,12 @@
 // ## Trin 1: Importer alle nødvendige moduler og klienter ##
 // -----------------------------------------------------------------
 
-// Importer den delte Supabase-klient. Dette er den vigtigste nye linje.
-import { supabaseClient } from './supabaseClient.js'; 
-
-// Importer appens øvrige moduler som før.
-import { initializeCalendar } from './modules/calendarManager.js';
-import { initializePlan } from './modules/planManager.js';
-import { initializeDashboardCharts } from './modules/chartManager.js';
-import { initializeAnalysePage as initializeAnalysis } from './modules/analyseManager.js';
-import { initializeStrava } from './modules/stravaManager.js';
+import { supabaseClient } from './supabaseClient.js';
+import { initializeCalendar, getDailyLogs } from './modules/calendarManager.js'; // RETTET: Importer også getDailyLogs
+import { initializePlanPage } from './modules/planManager.js'; // RETTET: Korrekt funktionsnavn
+import { updateHomePageDashboard } from './modules/chartManager.js'; // RETTET: Importer den korrekte funktion
+import { initializeAnalysePage } from './modules/analyseManager.js'; // RETTET: Korrekt funktionsnavn
+import { initializeStravaConnection } from './modules/stravaManager.js'; // RETTET: Korrekt funktionsnavn
 import { authenticatedFetch } from './modules/utils.js';
 
 // ## Trin 2: Definer de vigtigste HTML-elementer ##
@@ -19,142 +16,161 @@ import { authenticatedFetch } from './modules/utils.js';
 
 const loginSection = document.getElementById('login-section');
 const appSection = document.getElementById('app-section');
-const loadingIndicator = document.getElementById('loading-indicator');
-
-const navLinks = document.querySelectorAll('nav a');
-const sections = document.querySelectorAll('main > section');
-
-const profileForm = document.getElementById('profile-form');
+const loadingOverlay = document.getElementById('loading-overlay'); // RETTET: Bruger den nye overlay
+const navButtons = document.querySelectorAll('.nav-btn'); // RETTET: Matcher HTML's class
+const sections = document.querySelectorAll('main > section.page');
 const logoutButton = document.getElementById('logout-button');
+const runnerNameInput = document.getElementById('runnerName'); // Tilføjet for profilhåndtering
 
 // ## Trin 3: Applikationens "Hovedmotor" ##
 // -----------------------------------------------------------------
 
-// Denne funktion henter al data, når en bruger er logget ind.
 async function main() {
     console.log("main() starter: Henter brugerdata...");
-    loadingIndicator.style.display = 'block'; // Vis loader
+    loadingOverlay.classList.remove('hidden');
 
     try {
-        // Initialiser alle appens moduler parallelt for hurtigere indlæsning.
-        await Promise.all([
-            initializeDashboardCharts(),
-            initializeCalendar(),
-            initializePlan(),
-            initializeAnalysis(),
-            initializeStrava(),
-            loadProfile() // Hent og vis løberens profil.
-        ]);
+        // RETTET RÆKKEFØLGE
+        // 1. Hent profildata først, da det er nødvendigt for andre moduler
+        const profile = await loadProfile();
+
+        // 2. Initialiser planen, da kalenderen har brug for den
+        await initializePlanPage();
+
+        // 3. Initialiser kalenderen, som henter alle logs
+        await initializeCalendar();
+        
+        // 4. Hent de logs, som kalenderen lige har indlæst
+        const allLogs = getDailyLogs();
+        
+        // 5. Opdater nu dashboard-graferne med de hentede logs
+        updateHomePageDashboard(allLogs);
+        
+        // 6. Kør de resterende initialiseringer, der kan køre uafhængigt
+        initializeAnalysePage();
+        initializeStravaConnection();
+
+        // Opdater UI elementer, der afhænger af data
+        updateDashboardHeader(profile);
         
         console.log("main() færdig: Alle moduler er initialiseret.");
         
         // Sæt startsiden til 'Hjem' efter alt er hentet.
-        document.querySelector('nav a[data-target="home"]').click();
+        document.querySelector('.nav-btn[data-page="hjem"]').click();
 
     } catch (error) {
         console.error("Fejl under initialisering af appen:", error);
         alert("Der skete en fejl under indlæsning af dine data. Prøv venligst at genindlæse siden.");
     } finally {
-        loadingIndicator.style.display = 'none'; // Skjul loader
+        loadingOverlay.classList.add('hidden');
     }
 }
 
 
-// ## Trin 4: Håndtering af Bruger-Session (Det nye omdrejningspunkt) ##
+// ## Trin 4: Håndtering af Bruger-Session ##
 // -----------------------------------------------------------------
 
-// Denne listener reagerer, når en bruger logger ind, logger ud, eller når siden indlæses.
-// Dette er nu det ENESTE startpunkt for hele applikationen.
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    console.log('onAuthStateChange event:', event);
+    console.log('onAuthStateChange event:', event, session);
 
     if (session) {
-        // **SCENARIE: Brugeren er logget ind.**
         console.log("Bruger er logget ind. Viser app og skjuler login.");
         appSection.style.display = 'block';
         loginSection.style.display = 'none';
+        logoutButton.style.display = 'block';
         
-        // Kald hovedfunktionen for at hente og vise brugerens data.
         await main();
-
     } else {
-        // **SCENARIE: Brugeren er IKKE logget ind.**
         console.log("Bruger er ikke logget ind. Viser login-skærm.");
         appSection.style.display = 'none';
         loginSection.style.display = 'block';
-        loadingIndicator.style.display = 'none';
+        logoutButton.style.display = 'none';
+        loadingOverlay.classList.add('hidden');
     }
 });
 
 
-// ## Trin 5: Opsæt Event Listeners (Navigation, Profil, Logout) ##
+// ## Trin 5: Opsæt Event Listeners (Navigation, Profil, Auth) ##
 // -----------------------------------------------------------------
-// Denne kode er identisk med din oprindelige, den er blot flyttet udenfor
-// den gamle DOMContentLoaded-listener.
 
-// Navigation i appen (skift mellem sektioner).
-navLinks.forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetId = link.getAttribute('data-target');
+// Navigation
+navButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        const targetId = button.getAttribute('data-page');
         
         sections.forEach(section => {
-            section.style.display = section.id === targetId ? 'block' : 'none';
+            section.classList.toggle('active', section.id === targetId);
         });
 
-        navLinks.forEach(navLink => {
-            navLink.classList.remove('active');
-        });
-        link.classList.add('active');
+        navButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
     });
 });
 
-// Gem løberprofil.
-profileForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(profileForm);
-    const profileData = Object.fromEntries(formData.entries());
-    
-    try {
-        const response = await authenticatedFetch('/api/save-profile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(profileData),
-        });
-        if (!response.ok) throw new Error('Failed to save profile');
-        alert('Profil gemt!');
-    } catch (error) {
-        console.error('Fejl ved gemning af profil:', error);
-        alert('Der skete en fejl. Kunne ikke gemme profilen.');
-    }
-});
-
-// Hent og vis eksisterende profil.
+// Profilhåndtering
 async function loadProfile() {
     try {
         const response = await authenticatedFetch('/api/get-profile');
+        if (response.status === 204) {
+            console.log('Ingen profil fundet for brugeren.');
+            return null;
+        }
         if (!response.ok) throw new Error('Failed to fetch profile');
+        
         const profile = await response.json();
         
-        // Udfyld formularen med de hentede data.
+        // Udfyld profil-formularen på 'løberdata'-siden
+        const profileForm = document.getElementById('loberdata');
         for (const key in profile) {
-            if (profileForm.elements[key]) {
-                profileForm.elements[key].value = profile[key];
+            if (profileForm.querySelector(`[id="${key}"]`)) {
+                profileForm.querySelector(`[id="${key}"]`).value = profile[key];
             }
         }
+        return profile;
     } catch (error) {
         console.error('Kunne ikke hente profil:', error);
+        return null;
     }
 }
 
-// Log ud.
+function updateDashboardHeader(profile) {
+    const runnerNameDisplay = document.getElementById('dashboard-runner-name');
+    if (runnerNameDisplay && profile && profile.runnerName) {
+        runnerNameDisplay.textContent = profile.runnerName;
+    } else if (runnerNameDisplay) {
+        runnerNameDisplay.textContent = 'Min Løberprofil';
+    }
+}
+
+
+// Auth knapper (Login, Signup, Logout)
+const loginButton = document.getElementById('login-button');
+const signupButton = document.getElementById('signup-button');
+const emailInput = document.getElementById('email-input');
+const passwordInput = document.getElementById('password-input');
+
+loginButton.addEventListener('click', async () => {
+    const { error } = await supabaseClient.auth.signInWithPassword({
+        email: emailInput.value,
+        password: passwordInput.value,
+    });
+    if (error) alert(error.message);
+});
+
+signupButton.addEventListener('click', async () => {
+    const { error } = await supabaseClient.auth.signUp({
+        email: emailInput.value,
+        password: passwordInput.value,
+    });
+    if (error) {
+        alert(error.message);
+    } else {
+        alert('Bruger oprettet! Tjek din email for at bekræfte din konto.');
+    }
+});
+
 logoutButton.addEventListener('click', async () => {
     const { error } = await supabaseClient.auth.signOut();
-    if (error) {
-        console.error('Fejl ved log ud:', error);
-    } else {
-        // onAuthStateChange vil automatisk fange dette og vise login-skærmen.
-        // Du kan eventuelt tvinge en genindlæsning for at rydde al state helt.
-        window.location.reload(); 
-    }
+    if (error) console.error('Fejl ved log ud:', error);
+    // onAuthStateChange vil automatisk håndtere UI-skiftet
 });
