@@ -32,15 +32,21 @@ function getStartOfWeekKey(d) {
 async function renderAllAnalyseCharts() {
     const activePlan = getActivePlan();
     const allLogs = getDailyLogs();
-    
+
     let userProfile = {};
     try {
         const response = await authenticatedFetch('/api/get-profile');
-        if (response.ok) userProfile = await response.json();
+        // RETTET: Tjek for 204-status FØR vi kalder .json()
+        if (response.status === 204) {
+            console.log('Analyse-siden: Ingen profil at hente, fortsætter med tom profil.');
+            userProfile = {}; // Sæt til et tomt objekt og fortsæt
+        } else if (response.ok) {
+            userProfile = await response.json(); // Kald kun .json() hvis der er indhold
+        }
     } catch (error) {
         console.error("Kunne ikke hente profil til analyse:", error);
     }
-    
+
     renderPerformanceChart(allLogs, activePlan, userProfile);
     renderComplianceChart(allLogs, activePlan);
     renderRaceReadinessChart(activePlan);
