@@ -119,14 +119,43 @@ async function loadProfile() {
         
         const profile = await response.json();
         
-        // Udfyld profil-formularen på 'løberdata'-siden
+        // Find formularen på 'løberdata'-siden
         const profileForm = document.getElementById('loberdata');
+        if (!profileForm) return profile; // Gå ud hvis formen ikke findes
+
+        // Gå igennem alle felter fra databasen
         for (const key in profile) {
-            if (profileForm.querySelector(`[id="${key}"]`)) {
-                profileForm.querySelector(`[id="${key}"]`).value = profile[key];
+            
+            // NY LOGIK: Definer de felter, der er arrays
+            const zoneMapping = {
+                hrZones: 'hrZone',      // Databasenavn -> HTML ID prefix
+                powerZones: 'powerZone',
+                paceZones: 'paceZone'
+            };
+
+            // TJEK: Er dette felt et af vores zone-arrays?
+            if (zoneMapping[key] && Array.isArray(profile[key])) {
+                const prefix = zoneMapping[key];
+                
+                // Kør en løkke igennem array'et fra databasen
+                profile[key].forEach((value, index) => {
+                    const elementId = `${prefix}${index + 1}`; // Byg ID'et, f.eks. "hrZone1"
+                    const inputElement = profileForm.querySelector(`[id="${elementId}"]`);
+                    if (inputElement) {
+                        inputElement.value = value || ''; // Sæt værdien i den korrekte input-boks
+                    }
+                });
+            } else {
+                // GAMMEL LOGIK: Håndter alle andre normale felter
+                const inputElement = profileForm.querySelector(`[id="${key}"]`);
+                if (inputElement) {
+                    inputElement.value = profile[key] || '';
+                }
             }
         }
+        
         return profile;
+        
     } catch (error) {
         console.error('Kunne ikke hente profil:', error);
         return null;
