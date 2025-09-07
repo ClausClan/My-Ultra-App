@@ -128,9 +128,9 @@ async function loadProfile() {
             
             // NY LOGIK: Definer de felter, der er arrays
             const zoneMapping = {
-                hrZones: 'hr_zones',      // Databasenavn -> HTML ID prefix
-                powerZones: 'power_zones',
-                paceZones: 'pace_zones'
+                hrZone: 'hr_zones',      // Databasenavn -> HTML ID prefix
+                powerZone: 'power_zones',
+                paceZone: 'pace_zones'
             };
 
             // TJEK: Er dette felt et af vores zone-arrays?
