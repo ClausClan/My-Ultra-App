@@ -108,6 +108,7 @@ navButtons.forEach(button => {
 });
 
 // Profilhåndtering
+// Erstat den nuværende 'loadProfile' funktion i main.js med denne
 async function loadProfile() {
     try {
         const response = await authenticatedFetch('/api/get-profile');
@@ -117,44 +118,40 @@ async function loadProfile() {
         }
         if (!response.ok) throw new Error('Failed to fetch profile');
         
-        const profile = await response.json();
+        const profileData = await response.json();
         
-        // Find formularen på 'løberdata'-siden
         const profileForm = document.getElementById('loberdata');
-        if (!profileForm) return profile; // Gå ud hvis formen ikke findes
+        if (!profileForm) return profileData;
 
         // Gå igennem alle felter fra databasen
-        for (const key in profile) {
-            
-            // NY LOGIK: Definer de felter, der er arrays
-            const zoneMapping = {
-                hrZone: 'hr_zones',      // Databasenavn -> HTML ID prefix
-                powerZone: 'power_zones',
-                paceZone: 'pace_zones'
-            };
+        for (const dbKey in profileData) {
+            const value = profileData[dbKey];
 
-            // TJEK: Er dette felt et af vores zone-arrays?
-            if (zoneMapping[key] && Array.isArray(profile[key])) {
-                const prefix = zoneMapping[key];
+            // Speciel håndtering for zone-arrays
+            if ((dbKey === 'hr_zones' || dbKey === 'power_zones' || dbKey === 'pace_zones') && Array.isArray(value)) {
+                let prefix = '';
+                if (dbKey === 'hr_zones') prefix = 'hrZone';
+                if (dbKey === 'power_zones') prefix = 'powerZone';
+                if (dbKey === 'pace_zones') prefix = 'paceZone';
                 
-                // Kør en løkke igennem array'et fra databasen
-                profile[key].forEach((value, index) => {
-                    const elementId = `${prefix}${index + 1}`; // Byg ID'et, f.eks. "hrZone1"
+                value.forEach((zoneValue, index) => {
+                    const elementId = `${prefix}${index + 1}`; // f.eks. "hrZone1"
                     const inputElement = profileForm.querySelector(`[id="${elementId}"]`);
                     if (inputElement) {
-                        inputElement.value = value || ''; // Sæt værdien i den korrekte input-boks
+                        inputElement.value = zoneValue || '';
                     }
                 });
             } else {
-                // GAMMEL LOGIK: Håndter alle andre normale felter
-                const inputElement = profileForm.querySelector(`[id="${key}"]`);
+                // Generel "oversættelse" fra database_navn til htmlIdNavn
+                const camelCaseId = dbKey.replace(/(_\w)/g, (m) => m[1].toUpperCase());
+                const inputElement = profileForm.querySelector(`[id="${camelCaseId}"]`);
                 if (inputElement) {
-                    inputElement.value = profile[key] || '';
+                    inputElement.value = value || '';
                 }
             }
         }
         
-        return profile;
+        return profileData;
         
     } catch (error) {
         console.error('Kunne ikke hente profil:', error);
