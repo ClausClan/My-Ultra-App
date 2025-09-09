@@ -11,6 +11,7 @@ import { initializeAnalysePage } from './modules/analyseManager.js'; // RETTET: 
 import { initializeStravaConnection } from './modules/stravaManager.js'; // RETTET: Korrekt funktionsnavn
 //import { authenticatedFetch } from './modules/utils.js';
 import { loadProfile, initializeAutosave } from './modules/profileManager.js';
+import { initializePlanPage, loadActivePlan } from './modules/planManager.js';
 
 // ## Trin 2: Definer de vigtigste HTML-elementer ##
 // -----------------------------------------------------------------
@@ -34,6 +35,7 @@ async function main() {
         // RETTET RÆKKEFØLGE
         // 1. Hent profildata først, da det er nødvendigt for andre moduler
         const profile = await loadProfile();
+        await loadActivePlan();
 
         // 2. Initialiser planen, da kalenderen har brug for den
         await initializePlanPage();
@@ -114,10 +116,21 @@ navButtons.forEach(button => {
 // Hjælpefunktion til at opdatere header
 function updateDashboardHeader(profile) {
     const runnerNameDisplay = document.getElementById('dashboard-runner-name');
-    if (runnerNameDisplay && profile && profile.runnerName) {
-        runnerNameDisplay.textContent = profile.runnerName;
+    const thumbnailDisplay = document.getElementById('dashboard-thumbnail'); // Finder forside-billedet
+
+    // Opdater navnet på forsiden
+    if (runnerNameDisplay && profile && profile.runner_name) {
+        runnerNameDisplay.textContent = profile.runner_name;
     } else if (runnerNameDisplay) {
         runnerNameDisplay.textContent = 'Min Løberprofil';
+    }
+
+    //Opdater billedet på forsiden
+    if (thumbnailDisplay && profile && profile.profile_picture_url) {
+        thumbnailDisplay.src = profile.profile_picture_url;
+    } else if (thumbnailDisplay) {
+        // Sæt et standardbillede, hvis der ikke er noget i databasen
+        thumbnailDisplay.src = 'images/logo3.png'; // Eller en anden placeholder
     }
 }
 
