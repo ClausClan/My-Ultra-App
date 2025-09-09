@@ -85,17 +85,13 @@ export async function loadActivePlan() {
         const planObject = await response.json(); // Henter hele rækken fra databasen
         
         if (planObject && planObject.plan_data) {
-            // RETTET: Fortolk (parse) tekststrengen til et rigtigt JavaScript-array
-            try {
-                activePlan = JSON.parse(planObject.plan_data);
-            } catch (e) {
-                console.error("Fejl: Kunne ikke fortolke plan_data som JSON.", e);
-                activePlan = []; // Sæt til tom plan ved fejl
-            }
+            activePlan = planObject.plan_data; // Direkte tildeling!
             activePlanName = planObject.plan_name;
+            console.log("Træningsplan indlæst succesfuldt:", activePlan.length, "dage");
         }
     } catch (error) { 
         console.error("Fejl ved hentning af plan:", error); 
+        activePlan = []; // Sørg for at nulstille ved fejl
     }
 }
 
