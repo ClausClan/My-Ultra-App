@@ -71,19 +71,32 @@ async function saveActivePlan(planName, planData) {
         alert("Der opstod en fejl.");
     }
 }
+
 export async function loadActivePlan() {
     try {
         const response = await authenticatedFetch('/api/get-plan');
         if (response.status === 204 || response.status === 404) {
-            activePlan = []; activePlanName = ''; return;
+            activePlan = []; 
+            activePlanName = ''; 
+            return;
         }
         if (!response.ok) throw new Error('Kunne ikke hente plan');
-        const planObject = await response.json();
+        
+        const planObject = await response.json(); // Henter hele rækken fra databasen
+        
         if (planObject && planObject.plan_data) {
-            activePlan = planObject.plan_data;
+            // RETTET: Fortolk (parse) tekststrengen til et rigtigt JavaScript-array
+            try {
+                activePlan = JSON.parse(planObject.plan_data);
+            } catch (e) {
+                console.error("Fejl: Kunne ikke fortolke plan_data som JSON.", e);
+                activePlan = []; // Sæt til tom plan ved fejl
+            }
             activePlanName = planObject.plan_name;
         }
-    } catch (error) { console.error("Fejl ved hentning af plan:", error); }
+    } catch (error) { 
+        console.error("Fejl ved hentning af plan:", error); 
+    }
 }
 
 // --- VISNING AF PLAN-SIDEN ---

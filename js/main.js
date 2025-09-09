@@ -9,7 +9,8 @@ import { initializePlanPage } from './modules/planManager.js'; // RETTET: Korrek
 import { updateHomePageDashboard } from './modules/chartManager.js'; // RETTET: Importer den korrekte funktion
 import { initializeAnalysePage } from './modules/analyseManager.js'; // RETTET: Korrekt funktionsnavn
 import { initializeStravaConnection } from './modules/stravaManager.js'; // RETTET: Korrekt funktionsnavn
-import { authenticatedFetch } from './modules/utils.js';
+//import { authenticatedFetch } from './modules/utils.js';
+import { loadProfile, initializeAutosave } from './modules/profileManager.js';
 
 // ## Trin 2: Definer de vigtigste HTML-elementer ##
 // -----------------------------------------------------------------
@@ -20,7 +21,7 @@ const loadingOverlay = document.getElementById('loading-overlay'); // RETTET: Br
 const navButtons = document.querySelectorAll('.nav-btn'); // RETTET: Matcher HTML's class
 const sections = document.querySelectorAll('main > section.page');
 const logoutButton = document.getElementById('logout-button');
-const runnerNameInput = document.getElementById('runnerName'); // Tilføjet for profilhåndtering
+//const runnerNameInput = document.getElementById('runnerName'); // Tilføjet for profilhåndtering
 
 // ## Trin 3: Applikationens "Hovedmotor" ##
 // -----------------------------------------------------------------
@@ -49,6 +50,7 @@ async function main() {
         // 6. Kør de resterende initialiseringer, der kan køre uafhængigt
         initializeAnalysePage();
         initializeStravaConnection();
+        initializeAutosave();
 
         // Opdater UI elementer, der afhænger af data
         updateDashboardHeader(profile);
@@ -93,6 +95,8 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
 // ## Trin 5: Opsæt Event Listeners (Navigation, Profil, Auth) ##
 // -----------------------------------------------------------------
 
+
+
 // Navigation
 navButtons.forEach(button => {
     button.addEventListener('click', () => {
@@ -107,58 +111,7 @@ navButtons.forEach(button => {
     });
 });
 
-// Profilhåndtering
-// Erstat den nuværende 'loadProfile' funktion i main.js med denne
-async function loadProfile() {
-    try {
-        const response = await authenticatedFetch('/api/get-profile');
-        if (response.status === 204) {
-            console.log('Ingen profil fundet for brugeren.');
-            return null;
-        }
-        if (!response.ok) throw new Error('Failed to fetch profile');
-        
-        const profileData = await response.json();
-        
-        const profileForm = document.getElementById('loberdata');
-        if (!profileForm) return profileData;
-
-        // Gå igennem alle felter fra databasen
-        for (const dbKey in profileData) {
-            const value = profileData[dbKey];
-
-            // Speciel håndtering for zone-arrays
-            if ((dbKey === 'hr_zones' || dbKey === 'power_zones' || dbKey === 'pace_zones') && Array.isArray(value)) {
-                let prefix = '';
-                if (dbKey === 'hr_zones') prefix = 'hrZone';
-                if (dbKey === 'power_zones') prefix = 'powerZone';
-                if (dbKey === 'pace_zones') prefix = 'paceZone';
-                
-                value.forEach((zoneValue, index) => {
-                    const elementId = `${prefix}${index + 1}`; // f.eks. "hrZone1"
-                    const inputElement = profileForm.querySelector(`[id="${elementId}"]`);
-                    if (inputElement) {
-                        inputElement.value = zoneValue || '';
-                    }
-                });
-            } else {
-                // Generel "oversættelse" fra database_navn til htmlIdNavn
-                const camelCaseId = dbKey.replace(/(_\w)/g, (m) => m[1].toUpperCase());
-                const inputElement = profileForm.querySelector(`[id="${camelCaseId}"]`);
-                if (inputElement) {
-                    inputElement.value = value || '';
-                }
-            }
-        }
-        
-        return profileData;
-        
-    } catch (error) {
-        console.error('Kunne ikke hente profil:', error);
-        return null;
-    }
-}
-
+// Hjælpefunktion til at opdatere header
 function updateDashboardHeader(profile) {
     const runnerNameDisplay = document.getElementById('dashboard-runner-name');
     if (runnerNameDisplay && profile && profile.runnerName) {
