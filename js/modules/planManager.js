@@ -3,7 +3,7 @@ import { estimateTssFromPlan } from './utils.js';
 import { authenticatedFetch } from './utils.js';
 
 let activePlan = [];
-let activePlanName = '';
+export let activePlanName = '';
 let planTimelineChart = null;
 let currentWeekIndex = 0;
 let weeks = [];

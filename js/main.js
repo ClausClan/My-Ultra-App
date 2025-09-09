@@ -96,8 +96,6 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
 // ## Trin 5: Opsæt Event Listeners (Navigation, Profil, Auth) ##
 // -----------------------------------------------------------------
 
-
-
 // Navigation
 navButtons.forEach(button => {
     button.addEventListener('click', () => {
@@ -111,28 +109,6 @@ navButtons.forEach(button => {
         button.classList.add('active');
     });
 });
-
-// Hjælpefunktion til at opdatere header
-function updateDashboardHeader(profile) {
-    const runnerNameDisplay = document.getElementById('dashboard-runner-name');
-    const thumbnailDisplay = document.getElementById('dashboard-thumbnail'); // Finder forside-billedet
-
-    // Opdater navnet på forsiden
-    if (runnerNameDisplay && profile && profile.runner_name) {
-        runnerNameDisplay.textContent = profile.runner_name;
-    } else if (runnerNameDisplay) {
-        runnerNameDisplay.textContent = 'Min Løberprofil';
-    }
-
-    //Opdater billedet på forsiden
-    if (thumbnailDisplay && profile && profile.profilePicture) {
-        thumbnailDisplay.src = profile.profilePicture;
-    } else if (thumbnailDisplay) {
-        // Sæt et standardbillede, hvis der ikke er noget i databasen
-        thumbnailDisplay.src = 'images/logo3.png'; // Eller en anden placeholder
-    }
-}
-
 
 // Auth knapper (Login, Signup, Logout)
 const loginButton = document.getElementById('login-button');
@@ -165,3 +141,48 @@ logoutButton.addEventListener('click', async () => {
     if (error) console.error('Fejl ved log ud:', error);
     // onAuthStateChange vil automatisk håndtere UI-skiftet
 });
+
+// Hjælpefunktioner til dashboard
+function updateDashboardHeader(profile) {
+    const runnerNameDisplay = document.getElementById('dashboard-runner-name');
+    const thumbnailDisplay = document.getElementById('dashboard-thumbnail');
+
+    if (runnerNameDisplay && profile && profile.runner_name) {
+        runnerNameDisplay.textContent = profile.runner_name;
+    } else if (runnerNameDisplay) {
+        runnerNameDisplay.textContent = 'Min Løberprofil';
+    }
+
+    if (thumbnailDisplay && profile && profile.profile_picture_url) {
+        thumbnailDisplay.src = profile.profile_picture_url;
+    } else if (thumbnailDisplay) {
+        thumbnailDisplay.src = 'images/logo3.png';
+    }
+}
+
+// Hjælpefunktion til at opdatere header
+function updateDashboardStatus() {
+    const planStatusContent = document.getElementById('plan-status-content');
+    const todayTrainingText = document.getElementById('todayTrainingText');
+    const activePlan = getActivePlan();
+
+    if (!planStatusContent || !todayTrainingText) return;
+
+    if (activePlan && activePlan.length > 0) {
+        const planName = activePlanName || 'Aktiv Træningsplan';
+        const startDate = new Date(activePlan[0].date).toLocaleDateString('da-DK');
+        const endDate = new Date(activePlan[activePlan.length - 1].date).toLocaleDateString('da-DK');
+        planStatusContent.innerHTML = `<p><strong>Plan:</strong> ${planName}</p><p><strong>Periode:</strong> ${startDate} - ${endDate}</p>`;
+    } else {
+        planStatusContent.innerHTML = '<p>Ingen aktiv plan.</p>';
+    }
+
+    const todayKey = formatDateKey(new Date());
+    const todayPlan = activePlan.find(day => day.date === todayKey);
+
+    if (todayPlan && todayPlan.plan) {
+        todayTrainingText.textContent = todayPlan.plan;
+    } else {
+        todayTrainingText.textContent = 'Ingen træning planlagt i dag.';
+    }
+}
