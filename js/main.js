@@ -153,8 +153,8 @@ function updateDashboardHeader(profile) {
         runnerNameDisplay.textContent = 'Min Løberprofil';
     }
 
-    if (thumbnailDisplay && profile && profile.profile_picture_url) {
-        thumbnailDisplay.src = profile.profile_picture_url;
+    if (thumbnailDisplay && profile && profile.profilePicture) {
+        thumbnailDisplay.src = profile.profilePicture;
     } else if (thumbnailDisplay) {
         thumbnailDisplay.src = 'images/logo3.png';
     }
