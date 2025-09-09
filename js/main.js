@@ -125,8 +125,8 @@ function updateDashboardHeader(profile) {
     }
 
     //Opdater billedet på forsiden
-    if (thumbnailDisplay && profile && profile.profile_picture_url) {
-        thumbnailDisplay.src = profile.profile_picture_url;
+    if (thumbnailDisplay && profile && profile.profilePicture) {
+        thumbnailDisplay.src = profile.profilePicture;
     } else if (thumbnailDisplay) {
         // Sæt et standardbillede, hvis der ikke er noget i databasen
         thumbnailDisplay.src = 'images/logo3.png'; // Eller en anden placeholder
