@@ -5,13 +5,12 @@
 
 import { supabaseClient } from './supabaseClient.js';
 import { initializeCalendar, getDailyLogs } from './modules/calendarManager.js'; // RETTET: Importer også getDailyLogs
-import { initializePlanPage } from './modules/planManager.js'; // RETTET: Korrekt funktionsnavn
+import { initializePlanPage, loadActivePlan } from './modules/planManager.js'; // RETTET: Korrekt funktionsnavn
 import { updateHomePageDashboard } from './modules/chartManager.js'; // RETTET: Importer den korrekte funktion
 import { initializeAnalysePage } from './modules/analyseManager.js'; // RETTET: Korrekt funktionsnavn
 import { initializeStravaConnection } from './modules/stravaManager.js'; // RETTET: Korrekt funktionsnavn
 //import { authenticatedFetch } from './modules/utils.js';
 import { loadProfile, initializeAutosave } from './modules/profileManager.js';
-import { initializePlanPage, loadActivePlan } from './modules/planManager.js';
 
 // ## Trin 2: Definer de vigtigste HTML-elementer ##
 // -----------------------------------------------------------------
