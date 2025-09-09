@@ -4,12 +4,12 @@
 // -----------------------------------------------------------------
 
 import { supabaseClient } from './supabaseClient.js';
-import { initializeCalendar, getDailyLogs } from './modules/calendarManager.js'; // RETTET: Importer også getDailyLogs
-import { initializePlanPage, loadActivePlan } from './modules/planManager.js'; // RETTET: Korrekt funktionsnavn
-import { updateHomePageDashboard } from './modules/chartManager.js'; // RETTET: Importer den korrekte funktion
-import { initializeAnalysePage } from './modules/analyseManager.js'; // RETTET: Korrekt funktionsnavn
-import { initializeStravaConnection } from './modules/stravaManager.js'; // RETTET: Korrekt funktionsnavn
-//import { authenticatedFetch } from './modules/utils.js';
+import { initializeCalendar, getDailyLogs } from './modules/calendarManager.js';
+import { initializePlanPage, loadActivePlan, getActivePlan, activePlanName } from './modules/planManager.js';
+import { updateHomePageDashboard } from './modules/chartManager.js'; 
+import { initializeAnalysePage } from './modules/analyseManager.js'; 
+import { formatDateKey } from './modules/utils.js';
+import { initializeStravaConnection } from './modules/stravaManager.js'; 
 import { loadProfile, initializeAutosave } from './modules/profileManager.js';
 
 // ## Trin 2: Definer de vigtigste HTML-elementer ##
@@ -21,7 +21,6 @@ const loadingOverlay = document.getElementById('loading-overlay'); // RETTET: Br
 const navButtons = document.querySelectorAll('.nav-btn'); // RETTET: Matcher HTML's class
 const sections = document.querySelectorAll('main > section.page');
 const logoutButton = document.getElementById('logout-button');
-//const runnerNameInput = document.getElementById('runnerName'); // Tilføjet for profilhåndtering
 
 // ## Trin 3: Applikationens "Hovedmotor" ##
 // -----------------------------------------------------------------
@@ -55,6 +54,7 @@ async function main() {
 
         // Opdater UI elementer, der afhænger af data
         updateDashboardHeader(profile);
+        updateDashboardStatus();
         
         console.log("main() færdig: Alle moduler er initialiseret.");
         
