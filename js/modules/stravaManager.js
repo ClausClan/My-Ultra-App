@@ -6,7 +6,7 @@ async function refreshAccessToken() {
     if (!refreshToken) throw new Error("Mangler refresh token. Forbind venligst igen.");
 
     // Kald vores nye, sikre backend-endpoint
-    const response = await fetch('/api/strava-refresh', {
+    const response = await fetch('/api/strava', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh_token: refreshToken })
@@ -49,9 +49,9 @@ export async function fetchActivities() {
 
 async function redirectToStrava() {
   try {
-    const response = await fetch('/api/strava-config');
+    const response = await fetch('/api/strava'); // GET-kaldet håndteres automatisk
     if (!response.ok) throw new Error('Kunne ikke hente Strava konfiguration.');
-    
+
     const config = await response.json();
     const redirectUri = window.location.origin; // Bruger appens rod-URL
     const scope = 'read,activity:read_all';
