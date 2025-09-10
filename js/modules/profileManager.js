@@ -2,6 +2,25 @@
 
 import { authenticatedFetch } from './utils.js';
 
+// Funktion til at beregne og vise alder
+function calculateAndDisplayAge() {
+    const dobInput = document.getElementById('runnerDob');
+    const ageDisplay = document.getElementById('calculatedAge');
+
+    if (dobInput && ageDisplay && dobInput.value) {
+        const birthDate = new Date(dobInput.value);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        ageDisplay.textContent = age >= 0 ? `${age} år` : '-';
+    } else if (ageDisplay) {
+        ageDisplay.textContent = '-';
+    }
+}
+
 // Funktion til at indlæse data fra databasen og udfylde formularen
 export async function loadProfile() {
     try {
@@ -82,24 +101,6 @@ async function saveProfile() {
         console.log('Profil auto-gemt!'); // Ændret fra alert til console.log for en bedre brugeroplevelse
     } catch (error) {
         console.error('Fejl ved auto-gem af profil:', error);
-    }
-}
-
-function calculateAndDisplayAge() {
-    const dobInput = document.getElementById('runnerDob');
-    const ageDisplay = document.getElementById('calculatedAge');
-
-    if (dobInput && ageDisplay && dobInput.value) {
-        const birthDate = new Date(dobInput.value);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
-        ageDisplay.textContent = age >= 0 ? `${age} år` : '-';
-    } else if (ageDisplay) {
-        ageDisplay.textContent = '-';
     }
 }
 
