@@ -34,24 +34,25 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
         const client_id = process.env.STRAVA_CLIENT_ID;
         const client_secret = process.env.STRAVA_CLIENT_SECRET;
+        const redirect_uri = process.env.APP_URL; // Hent URL'en fra den nye variabel
 
         try {
-            // Tjek om det er en anmodning om at udveksle en auth-kode (erstatter strava-auth.js)
+            // Håndter udveksling af auth-kode
             if (req.body.code) {
-                const payload = { client_id, client_secret, code: req.body.code, grant_type: 'authorization_code' };
+                // TILFØJET: redirect_uri er nu en del af anmodningen
+                const payload = { client_id, client_secret, code: req.body.code, grant_type: 'authorization_code', redirect_uri };
                 const data = await fetchStravaTokens(payload);
                 return res.status(200).json(data);
             }
 
-            // Tjek om det er en anmodning om at genopfriske et token (erstatter strava-refresh.js)
+            // Håndter genopfriskning af token
             if (req.body.refresh_token) {
                 const payload = { client_id, client_secret, refresh_token: req.body.refresh_token, grant_type: 'refresh_token' };
                 const data = await fetchStravaTokens(payload);
                 return res.status(200).json(data);
             }
 
-            // Hvis ingen af delene, er anmodningen ugyldig
-            return res.status(400).json({ message: 'Invalid POST request. Missing "code" or "refresh_token".' });
+            return res.status(400).json({ message: 'Invalid POST request.' });
 
         } catch (error) {
             console.error('Strava API error:', error);
@@ -59,6 +60,5 @@ export default async function handler(req, res) {
         }
     }
 
-    // Hvis metoden hverken er GET eller POST
     return res.status(405).json({ message: 'Method Not Allowed' });
 }
