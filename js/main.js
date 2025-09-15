@@ -16,26 +16,39 @@ import { loadProfile, initializeAutosave } from './modules/profileManager.js';
 // Denne funktion kører FØR alt andet. Den tjekker, om vi er midt i en omdirigering.
 async function handleRedirects() {
     const params = new URLSearchParams(window.location.search);
-
+    
     if (params.has('code') && params.has('scope')) {
         const code = params.get('code');
         document.body.innerHTML = '<h1>Forbinder til Strava... Vent venligst.</h1>';
         try {
-            // RETTET: Peger nu på det nye samlede endpoint
+            // RETTET: Vi sender nu den præcise redirect_uri med i anmodningen
             const response = await fetch('/api/strava', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: code })
+                body: JSON.stringify({ 
+                    code: code,
+                    redirect_uri: window.location.origin // Sender den aktuelle adresse
+                })
             });
 
+            if (!response.ok) {
+                const errorBody = await response.json();
+                throw new Error(errorBody.message || 'Kunne ikke udveksle Strava-kode.');
+            }
+            
+            const data = await response.json();
+            localStorage.setItem('strava_access_token', data.access_token);
+            localStorage.setItem('strava_refresh_token', data.refresh_token);
+            localStorage.setItem('strava_token_expires_at', data.expires_at);
+            localStorage.setItem('strava_athlete_info', JSON.stringify(data.athlete));
+            
+            window.location.replace(window.location.pathname);
         } catch (error) {
             document.body.innerHTML = `<h1>Fejl under Strava-login: ${error.message}</h1>`;
         }
-        
-        return true; // Vigtigt: Fortæl resten af scriptet, at det skal stoppe
+        return true;
     }
-    
-    return false; // Fortæl resten af scriptet, at det kan fortsætte normalt
+    return false;
 }
 
 // --- TRIN X: HOVED-APP LOGIK ---

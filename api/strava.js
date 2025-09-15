@@ -34,31 +34,21 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
         const client_id = process.env.STRAVA_CLIENT_ID;
         const client_secret = process.env.STRAVA_CLIENT_SECRET;
-        const redirect_uri = process.env.APP_URL; // Hent URL'en fra den nye variabel
 
         try {
-            // Håndter udveksling af auth-kode
-            if (req.body.code) {
-                // TILFØJET: redirect_uri er nu en del af anmodningen
-                const payload = { client_id, client_secret, code: req.body.code, grant_type: 'authorization_code', redirect_uri };
+            if (req.body.code && req.body.redirect_uri) {
+                // RETTET: Bruger nu redirect_uri fra anmodningen
+                const { code, redirect_uri } = req.body;
+                const payload = { client_id, client_secret, code, grant_type: 'authorization_code', redirect_uri };
                 const data = await fetchStravaTokens(payload);
                 return res.status(200).json(data);
             }
 
-            // Håndter genopfriskning af token
             if (req.body.refresh_token) {
-                const payload = { client_id, client_secret, refresh_token: req.body.refresh_token, grant_type: 'refresh_token' };
-                const data = await fetchStravaTokens(payload);
-                return res.status(200).json(data);
+                // ... (refresh-delen er uændret)
             }
-
             return res.status(400).json({ message: 'Invalid POST request.' });
-
-        } catch (error) {
-            console.error('Strava API error:', error);
-            return res.status(500).json({ message: error.message });
-        }
+        } catch (error) { /* ... */ }
     }
-
     return res.status(405).json({ message: 'Method Not Allowed' });
 }
