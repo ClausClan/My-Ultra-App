@@ -112,6 +112,62 @@ async function main() {
     }
 }
 
+// --- HOVED-LOGIK: DEN ENESTE INDGANG TIL APPEN ---
+
+// En "lås" for at sikre, at appen kun initialiseres én gang.
+let appInitialized = false;
+
+// Denne listener håndterer nu ALLE start-scenarier
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    console.log(`onAuthStateChange event: ${event}`);
+
+    // TRIN 1: Håndter Strava-omdirigering FØR alt andet
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('code') && params.has('scope')) {
+        document.body.innerHTML = '<h1>Forbinder til Strava... Vent venligst.</h1>';
+        try {
+            const response = await fetch('/api/strava', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: params.get('code'), redirect_uri: window.location.origin })
+            });
+            if (!response.ok) throw new Error((await response.json()).message || 'Kunne ikke udveksle Strava-kode.');
+            
+            const data = await response.json();
+            localStorage.setItem('strava_access_token', data.access_token);
+            localStorage.setItem('strava_refresh_token', data.refresh_token);
+            localStorage.setItem('strava_token_expires_at', data.expires_at);
+            localStorage.setItem('strava_athlete_info', JSON.stringify(data.athlete));
+            
+            window.location.replace(window.location.pathname); // Genindlæs rent
+        } catch (error) {
+            document.body.innerHTML = `<h1>Fejl under Strava-login: ${error.message}</h1>`;
+        }
+        return; // Stop videre kørsel, siden genindlæses
+    }
+
+    // TRIN 2: Håndter login-status
+    if (session && !appInitialized) {
+        appInitialized = true; // Sæt låsen
+        
+        appSection.style.display = 'block';
+        loginSection.style.display = 'none';
+        logoutButton.style.display = 'block';
+        
+        await main(); // Kør den tunge initialisering ÉN GANG
+    
+    } else if (!session) {
+        appInitialized = false; // Nulstil låsen, hvis brugeren logger ud
+        
+        appSection.style.display = 'none';
+        loginSection.style.display = 'block';
+        logoutButton.style.display = 'none';
+        
+        if(loadingOverlay) loadingOverlay.classList.add('hidden');
+    }
+});
+
+
 // ## Trin X: Håndtering af Bruger-Session ##
 // -----------------------------------------------------------------
 
