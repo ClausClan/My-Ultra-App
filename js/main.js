@@ -1,247 +1,59 @@
-// js/main.js
-
-// ## Trin X: Importer alle nødvendige moduler og klienter ##
-// -----------------------------------------------------------------
+// Fil: js/main.js - ENDELIG, KORREKT OG RENSET VERSION
 
 import { supabaseClient } from './supabaseClient.js';
 import { initializeCalendar, getDailyLogs } from './modules/calendarManager.js';
 import { initializePlanPage, loadActivePlan, getActivePlan, activePlanName } from './modules/planManager.js';
-import { updateHomePageDashboard } from './modules/chartManager.js'; 
-import { initializeAnalysePage } from './modules/analyseManager.js'; 
+import { updateHomePageDashboard } from './modules/chartManager.js';
+import { initializeAnalysePage } from './modules/analyseManager.js';
 import { formatDateKey } from './modules/utils.js';
-import { initializeStravaConnection } from './modules/stravaManager.js'; 
+import { initializeStravaConnection } from './modules/stravaManager.js';
 import { loadProfile, initializeAutosave } from './modules/profileManager.js';
 
-// --- TRIN 1: DØRMANDEN / GATEKEEPER ---
-// Denne funktion kører FØR alt andet. Den tjekker, om vi er midt i en omdirigering.
-async function handleRedirects() {
-    const params = new URLSearchParams(window.location.search);
-    
-    if (params.has('code') && params.has('scope')) {
-        const code = params.get('code');
-        document.body.innerHTML = '<h1>Forbinder til Strava... Vent venligst.</h1>';
-        try {
-            // RETTET: Vi sender nu den præcise redirect_uri med i anmodningen
-            const response = await fetch('/api/strava', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    code: code,
-                    redirect_uri: window.location.origin // Sender den aktuelle adresse
-                })
-            });
-
-            if (!response.ok) {
-                const errorBody = await response.json();
-                throw new Error(errorBody.message || 'Kunne ikke udveksle Strava-kode.');
-            }
-            
-            const data = await response.json();
-            localStorage.setItem('strava_access_token', data.access_token);
-            localStorage.setItem('strava_refresh_token', data.refresh_token);
-            localStorage.setItem('strava_token_expires_at', data.expires_at);
-            localStorage.setItem('strava_athlete_info', JSON.stringify(data.athlete));
-            
-            window.location.replace(window.location.pathname);
-        } catch (error) {
-            document.body.innerHTML = `<h1>Fejl under Strava-login: ${error.message}</h1>`;
-        }
-        return true;
-    }
-    return false;
-}
-
-// --- TRIN X: HOVED-APP LOGIK ---
-// Denne del af koden kører kun, hvis "dørmanden" siger, det er ok.
-async function startApp() {
-
-// ## Trin 2: Definer de vigtigste HTML-elementer ##
-// -----------------------------------------------------------------
+// --- DEFINER ELEMENTER OG FUNKTIONER ---
 
 const loginSection = document.getElementById('login-section');
 const appSection = document.getElementById('app-section');
-const loadingOverlay = document.getElementById('loading-overlay'); // RETTET: Bruger den nye overlay
-const navButtons = document.querySelectorAll('.nav-btn'); // RETTET: Matcher HTML's class
+const loadingOverlay = document.getElementById('loading-overlay');
+const navButtons = document.querySelectorAll('.nav-btn');
 const sections = document.querySelectorAll('main > section.page');
 const logoutButton = document.getElementById('logout-button');
-
-// ## Trin 3: Applikationens "Hovedmotor" ##
-// -----------------------------------------------------------------
-
-async function main() {
-    console.log("main() starter: Henter brugerdata...");
-    loadingOverlay.classList.remove('hidden');
-
-    try {
-        // RETTET RÆKKEFØLGE
-        // 1. Hent profildata først, da det er nødvendigt for andre moduler
-        const profile = await loadProfile();
-        await loadActivePlan();
-
-        // 2. Initialiser planen, da kalenderen har brug for den
-        await initializePlanPage();
-
-        // 3. Initialiser kalenderen, som henter alle logs
-        await initializeCalendar();
-        
-        // 4. Hent de logs, som kalenderen lige har indlæst
-        const allLogs = getDailyLogs();
-        
-        // 5. Opdater nu dashboard-graferne med de hentede logs
-        updateHomePageDashboard(allLogs);
-        
-        // 6. Kør de resterende initialiseringer, der kan køre uafhængigt
-        initializeAnalysePage();
-        initializeStravaConnection();
-        initializeAutosave();
-
-        // Opdater UI elementer, der afhænger af data
-        updateDashboardHeader(profile);
-        updateDashboardStatus();
-        
-        console.log("main() færdig: Alle moduler er initialiseret.");
-        
-        // Sæt startsiden til 'Hjem' efter alt er hentet.
-        document.querySelector('.nav-btn[data-page="hjem"]').click();
-
-    } catch (error) {
-        console.error("Fejl under initialisering af appen:", error);
-        alert("Der skete en fejl under indlæsning af dine data. Prøv venligst at genindlæse siden.");
-    } finally {
-        loadingOverlay.classList.add('hidden');
-    }
-}
-
-// --- HOVED-LOGIK: DEN ENESTE INDGANG TIL APPEN ---
-
-// En "lås" for at sikre, at appen kun initialiseres én gang.
-let appInitialized = false;
-
-// Denne listener håndterer nu ALLE start-scenarier
-supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    console.log(`onAuthStateChange event: ${event}`);
-
-    // TRIN 1: Håndter Strava-omdirigering FØR alt andet
-    const params = new URLSearchParams(window.location.search);
-    if (params.has('code') && params.has('scope')) {
-        document.body.innerHTML = '<h1>Forbinder til Strava... Vent venligst.</h1>';
-        try {
-            const response = await fetch('/api/strava', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: params.get('code'), redirect_uri: window.location.origin })
-            });
-            if (!response.ok) throw new Error((await response.json()).message || 'Kunne ikke udveksle Strava-kode.');
-            
-            const data = await response.json();
-            localStorage.setItem('strava_access_token', data.access_token);
-            localStorage.setItem('strava_refresh_token', data.refresh_token);
-            localStorage.setItem('strava_token_expires_at', data.expires_at);
-            localStorage.setItem('strava_athlete_info', JSON.stringify(data.athlete));
-            
-            window.location.replace(window.location.pathname); // Genindlæs rent
-        } catch (error) {
-            document.body.innerHTML = `<h1>Fejl under Strava-login: ${error.message}</h1>`;
-        }
-        return; // Stop videre kørsel, siden genindlæses
-    }
-
-    // TRIN 2: Håndter login-status
-    if (session && !appInitialized) {
-        appInitialized = true; // Sæt låsen
-        
-        appSection.style.display = 'block';
-        loginSection.style.display = 'none';
-        logoutButton.style.display = 'block';
-        
-        await main(); // Kør den tunge initialisering ÉN GANG
-    
-    } else if (!session) {
-        appInitialized = false; // Nulstil låsen, hvis brugeren logger ud
-        
-        appSection.style.display = 'none';
-        loginSection.style.display = 'block';
-        logoutButton.style.display = 'none';
-        
-        if(loadingOverlay) loadingOverlay.classList.add('hidden');
-    }
-});
-
-
-// ## Trin X: Håndtering af Bruger-Session ##
-// -----------------------------------------------------------------
-
-supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    console.log('onAuthStateChange event:', event, session);
-
-    if (session) {
-        console.log("Bruger er logget ind. Viser app og skjuler login.");
-        appSection.style.display = 'block';
-        loginSection.style.display = 'none';
-        logoutButton.style.display = 'block';
-        
-        await main();
-    } else {
-        console.log("Bruger er ikke logget ind. Viser login-skærm.");
-        appSection.style.display = 'none';
-        loginSection.style.display = 'block';
-        logoutButton.style.display = 'none';
-        loadingOverlay.classList.add('hidden');
-    }
-});
-
-
-
-// ## Trin X: Opsæt Event Listeners (Navigation, Profil, Auth) ##
-// -----------------------------------------------------------------
-
-// Navigation
-navButtons.forEach(button => {
-    button.addEventListener('click', () => {
-        const targetId = button.getAttribute('data-page');
-        
-        sections.forEach(section => {
-            section.classList.toggle('active', section.id === targetId);
-        });
-
-        navButtons.forEach(btn => btn.classList.remove('active'));
-        button.classList.add('active');
-    });
-});
-
-// Auth knapper (Login, Signup, Logout)
 const loginButton = document.getElementById('login-button');
 const signupButton = document.getElementById('signup-button');
 const emailInput = document.getElementById('email-input');
 const passwordInput = document.getElementById('password-input');
 
-loginButton.addEventListener('click', async () => {
-    const { error } = await supabaseClient.auth.signInWithPassword({
-        email: emailInput.value,
-        password: passwordInput.value,
-    });
-    if (error) alert(error.message);
-});
+async function main() {
+    console.log("main() starter: Henter brugerdata...");
+    if(loadingOverlay) loadingOverlay.classList.remove('hidden');
+    try {
+        const profile = await loadProfile();
+        await loadActivePlan();
 
-signupButton.addEventListener('click', async () => {
-    const { error } = await supabaseClient.auth.signUp({
-        email: emailInput.value,
-        password: passwordInput.value,
-    });
-    if (error) {
-        alert(error.message);
-    } else {
-        alert('Bruger oprettet! Tjek din email for at bekræfte din konto.');
+        initializePlanPage();
+        await initializeCalendar();
+        
+        const allLogs = getDailyLogs();
+        updateHomePageDashboard(allLogs);
+        
+        initializeAnalysePage();
+        initializeStravaConnection();
+        initializeAutosave();
+
+        updateDashboardHeader(profile);
+        updateDashboardStatus();
+        
+        console.log("main() færdig: Alle moduler er initialiseret.");
+        const hjemButton = document.querySelector('.nav-btn[data-page="hjem"]');
+        if(hjemButton) hjemButton.click();
+
+    } catch (error) {
+        console.error("Fejl under initialisering af appen:", error);
+        alert("Der skete en fejl under indlæsning af dine data.");
+    } finally {
+        if(loadingOverlay) loadingOverlay.classList.add('hidden');
     }
-});
+}
 
-logoutButton.addEventListener('click', async () => {
-    const { error } = await supabaseClient.auth.signOut();
-    if (error) console.error('Fejl ved log ud:', error);
-    // onAuthStateChange vil automatisk håndtere UI-skiftet
-});
-
-// Hjælpefunktioner til dashboard
 function updateDashboardHeader(profile) {
     const runnerNameDisplay = document.getElementById('dashboard-runner-name');
     const thumbnailDisplay = document.getElementById('dashboard-thumbnail');
@@ -252,14 +64,13 @@ function updateDashboardHeader(profile) {
         runnerNameDisplay.textContent = 'Min Løberprofil';
     }
 
-    if (thumbnailDisplay && profile && profile.profilePicture) {
-        thumbnailDisplay.src = profile.profilePicture;
+    if (thumbnailDisplay && profile && profile.profile_picture_url) {
+        thumbnailDisplay.src = profile.profile_picture_url;
     } else if (thumbnailDisplay) {
         thumbnailDisplay.src = 'images/logo3.png';
     }
 }
 
-// Hjælpefunktion til at opdatere header
 function updateDashboardStatus() {
     const planStatusContent = document.getElementById('plan-status-content');
     const todayTrainingText = document.getElementById('todayTrainingText');
@@ -285,11 +96,90 @@ function updateDashboardStatus() {
         todayTrainingText.textContent = 'Ingen træning planlagt i dag.';
     }
 }
-}
-// --- TRIN 3: KØRSEL ---
-// Start "dørmanden". Hvis den returnerer false, startes den normale app.
-handleRedirects().then(isRedirecting => {
-    if (!isRedirecting) {
-        startApp();
+
+
+// --- HOVED-LOGIK: DEN ENESTE INDGANG TIL APPEN ---
+
+let appInitialized = false;
+
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    console.log(`onAuthStateChange event: ${event}`);
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('code') && params.has('scope')) {
+        document.body.innerHTML = '<h1>Forbinder til Strava... Vent venligst.</h1>';
+        try {
+            const response = await fetch('/api/strava', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: params.get('code'), redirect_uri: window.location.origin })
+            });
+            if (!response.ok) throw new Error((await response.json()).message || 'Kunne ikke udveksle Strava-kode.');
+            
+            const data = await response.json();
+            localStorage.setItem('strava_access_token', data.access_token);
+            localStorage.setItem('strava_refresh_token', data.refresh_token);
+            localStorage.setItem('strava_token_expires_at', data.expires_at);
+            localStorage.setItem('strava_athlete_info', JSON.stringify(data.athlete));
+            
+            window.location.replace(window.location.pathname);
+        } catch (error) {
+            document.body.innerHTML = `<h1>Fejl under Strava-login: ${error.message}</h1>`;
+        }
+        return;
     }
+
+    if (session && !appInitialized) {
+        appInitialized = true;
+        
+        if(appSection) appSection.style.display = 'block';
+        if(loginSection) loginSection.style.display = 'none';
+        if(logoutButton) logoutButton.style.display = 'block';
+        
+        await main();
+    
+    } else if (!session) {
+        appInitialized = false;
+        
+        if(appSection) appSection.style.display = 'none';
+        if(loginSection) loginSection.style.display = 'block';
+        if(logoutButton) logoutButton.style.display = 'none';
+        
+        if(loadingOverlay) loadingOverlay.classList.add('hidden');
+    }
+});
+
+// Opsæt simple Event Listeners
+navButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        const targetId = button.getAttribute('data-page');
+        sections.forEach(section => section.classList.toggle('active', section.id === targetId));
+        navButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+    });
+});
+
+loginButton?.addEventListener('click', async () => {
+    const { error } = await supabaseClient.auth.signInWithPassword({
+        email: emailInput.value,
+        password: passwordInput.value,
+    });
+    if (error) alert(error.message);
+});
+
+signupButton?.addEventListener('click', async () => {
+    const { error } = await supabaseClient.auth.signUp({
+        email: emailInput.value,
+        password: passwordInput.value,
+    });
+    if (error) {
+        alert(error.message);
+    } else {
+        alert('Bruger oprettet! Tjek din email for at bekræfte din konto.');
+    }
+});
+
+logoutButton?.addEventListener('click', async () => {
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) console.error('Fejl ved log ud:', error);
 });
