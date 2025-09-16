@@ -38,7 +38,6 @@ export default async function handler(req, res) {
         return res.status(200).json({ clientId: stravaClientId });
     }
 
-    // --- Håndter POST-anmodninger (uændret) ---
     if (req.method === 'POST') {
         const client_id = process.env.STRAVA_CLIENT_ID;
         const client_secret = process.env.STRAVA_CLIENT_SECRET;
@@ -46,6 +45,15 @@ export default async function handler(req, res) {
         try {
             if (req.body.code && req.body.redirect_uri) {
                 const { code, redirect_uri } = req.body;
+
+                // --- NYT: DETALJERET LOGGING TIL DEBUGGING ---
+                console.log("--- Debugging Strava Token Exchange ---");
+                console.log("Modtaget redirect_uri fra frontend:", redirect_uri);
+                console.log("Bruger client_id:", client_id);
+                // VIGTIGT: Vi logger ALDRIG client_secret af sikkerhedsmæssige årsager.
+                console.log("---------------------------------------");
+                // --- SLUT PÅ LOGGING ---
+
                 const payload = { client_id, client_secret, code, grant_type: 'authorization_code', redirect_uri };
                 const data = await fetchStravaTokens(payload);
                 return res.status(200).json(data);
@@ -57,15 +65,11 @@ export default async function handler(req, res) {
                 const data = await fetchStravaTokens(payload);
                 return res.status(200).json(data);
             }
-
             return res.status(400).json({ message: 'Invalid POST request.' });
-
         } catch (error) {
             console.error('Strava API error:', error);
             return res.status(500).json({ message: error.message });
         }
     }
-
-    // Hvis metoden ikke er OPTIONS, GET eller POST
     return res.status(405).json({ message: 'Method Not Allowed' });
 }
