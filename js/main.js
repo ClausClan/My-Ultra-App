@@ -1,4 +1,4 @@
-// Fil: js/main.js
+// Fil: js/main.js - ENDELIG, KORREKT OG RENSET VERSION
 
 import { supabaseClient } from './supabaseClient.js';
 import { initializeCalendar, getDailyLogs } from './modules/calendarManager.js';
@@ -10,7 +10,6 @@ import { initializeStravaConnection } from './modules/stravaManager.js';
 import { loadProfile, initializeAutosave } from './modules/profileManager.js';
 
 // --- DEFINER ELEMENTER ---
-
 const loginSection = document.getElementById('login-section');
 const appSection = document.getElementById('app-section');
 const loadingOverlay = document.getElementById('loading-overlay');
@@ -52,13 +51,11 @@ async function main() {
 function updateDashboardHeader(profile) {
     const runnerNameDisplay = document.getElementById('dashboard-runner-name');
     const thumbnailDisplay = document.getElementById('dashboard-thumbnail');
-
     if (runnerNameDisplay && profile && profile.runner_name) {
         runnerNameDisplay.textContent = profile.runner_name;
     } else if (runnerNameDisplay) {
         runnerNameDisplay.textContent = 'Min Løberprofil';
     }
-
     if (thumbnailDisplay && profile && profile.profile_picture_url) {
         thumbnailDisplay.src = profile.profile_picture_url;
     } else if (thumbnailDisplay) {
@@ -70,9 +67,7 @@ function updateDashboardStatus() {
     const planStatusContent = document.getElementById('plan-status-content');
     const todayTrainingText = document.getElementById('todayTrainingText');
     const activePlan = getActivePlan();
-
     if (!planStatusContent || !todayTrainingText) return;
-
     if (activePlan && activePlan.length > 0) {
         const planName = activePlanName || 'Aktiv Træningsplan';
         const startDate = new Date(activePlan[0].date).toLocaleDateString('da-DK');
@@ -81,23 +76,17 @@ function updateDashboardStatus() {
     } else {
         planStatusContent.innerHTML = '<p>Ingen aktiv plan.</p>';
     }
-
     const todayKey = formatDateKey(new Date());
     const todayPlan = activePlan.find(day => day.date === todayKey);
-
     if (todayPlan && todayPlan.plan) {
         todayTrainingText.textContent = todayPlan.plan;
     } else {
         todayTrainingText.textContent = 'Ingen træning planlagt i dag.';
     }
-}
-
+} 
 
 // --- HOVED-LOGIK: DEN ENESTE INDGANG TIL APPEN ---
-
-// --- DEN ENESTE INDGANG TIL APPEN ---
-async functioninitializeApp() {
-    // 1. Håndter Strava-omdirigering FØR alt andet
+async function initializeApp() {
     const params = new URLSearchParams(window.location.search);
     if (params.has('code') && params.has('scope')) {
         document.body.innerHTML = '<h1>Forbinder til Strava... Vent venligst.</h1>';
@@ -117,36 +106,31 @@ async functioninitializeApp() {
         } catch (error) {
             document.body.innerHTML = `<h1>Fejl under Strava-login: ${error.message}</h1>`;
         }
-        return; // Stop alt videre, siden genindlæses
+        return;
     }
 
-    // 2. Tjek for en eksisterende session én gang ved start
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
-        // Bruger er logget ind: Start appen
         if(appSection) appSection.style.display = 'block';
         if(loginSection) loginSection.style.display = 'none';
         if(logoutButton) logoutButton.style.display = 'block';
         await main();
     } else {
-        // Bruger er ikke logget ind: Vis login-skærm
         if(appSection) appSection.style.display = 'none';
         if(loginSection) loginSection.style.display = 'block';
         if(logoutButton) logoutButton.style.display = 'none';
     }
 
-    // 3. Lyt KUN efter fremtidige ændringer (specifikt logout)
     supabaseClient.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_OUT') {
-            window.location.reload(); // Genindlæs for at komme til en ren login-skærm
+            window.location.reload();
         }
     });
 }
 
 // --- KØRSEL OG EVENT LISTENERS ---
-initializeApp(); // Start hele applikationen
+initializeApp();
 
-// Opsæt simple Event Listeners
 navButtons.forEach(button => {
     button.addEventListener('click', () => {
         const targetId = button.getAttribute('data-page');
@@ -155,8 +139,6 @@ navButtons.forEach(button => {
         button.classList.add('active');
     });
 });
-
-// Auth knapper
 
 loginButton?.addEventListener('click', async () => {
     const { error } = await supabaseClient.auth.signInWithPassword({
