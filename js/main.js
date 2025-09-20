@@ -145,22 +145,49 @@ navButtons.forEach(button => {
 });
 
 loginButton?.addEventListener('click', async () => {
-    const { error } = await supabaseClient.auth.signInWithPassword({
-        email: emailInput.value,
-        password: passwordInput.value,
-    });
-    if (error) alert(error.message);
+    loginButton.disabled = true;
+    loginButton.textContent = 'Logger ind...';
+
+    try {
+        const { error } = await supabaseClient.auth.signInWithPassword({
+            email: emailInput.value,
+            password: passwordInput.value,
+        });
+        if (error) {
+            // Vis fejlen både som en alert og i konsollen
+            alert(error.message);
+            console.error('Login fejl:', error);
+        }
+    } catch (e) {
+        alert('En uventet fejl opstod.');
+        console.error('Uventet login fejl:', e);
+    } finally {
+        // Nulstil knappen, uanset om det lykkedes eller ej
+        loginButton.disabled = false;
+        loginButton.textContent = 'Log Ind';
+    }
 });
 
 signupButton?.addEventListener('click', async () => {
-    const { error } = await supabaseClient.auth.signUp({
-        email: emailInput.value,
-        password: passwordInput.value,
-    });
-    if (error) {
-        alert(error.message);
-    } else {
-        alert('Bruger oprettet! Tjek din email for at bekræfte din konto.');
+    signupButton.disabled = true;
+    signupButton.textContent = 'Opretter...';
+    try {
+        const { error } = await supabaseClient.auth.signUp({
+            email: emailInput.value,
+            password: passwordInput.value,
+        });
+        if (error) {
+            alert(error.message);
+            console.error('Signup fejl:', error);
+        } else {
+            alert('Bruger oprettet! Tjek din email for at bekræfte din konto.');
+        }
+    } catch (e) {
+        alert('En uventet fejl opstod.');
+        console.error('Uventet signup fejl:', e);
+    } finally {
+        signupButton.disabled = false;
+        signupButton.textContent = 'Opret Bruger';
     }
 });
 
