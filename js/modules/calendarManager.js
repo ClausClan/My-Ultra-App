@@ -302,6 +302,7 @@ export async function initializeCalendar() {
             const logsToCreate = newActivities.map(activity => {
                 console.log("Rå aktivitet-data modtaget fra Strava:", activity);
 
+            const logsToCreate = newActivities.map(activity => {
                 const dateKey = activity.start_date_local.split('T')[0];
                 return {
                     date: dateKey,
@@ -310,7 +311,8 @@ export async function initializeCalendar() {
                     elevation: activity.total_elevation_gain ? Math.round(activity.total_elevation_gain) : null,
                     avg_watt: activity.average_watts ? Math.round(activity.average_watts) : null,
                     avg_hr: activity.average_heartrate ? Math.round(activity.average_heartrate) : null,
-                    stravaActivityId: activity.id.toString()
+                    strava_activity_id: activity.id.toString(),
+                    notes: `Importeret fra Strava: ${activity.name}`
                 };
             });
 
