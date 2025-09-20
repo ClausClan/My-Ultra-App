@@ -1,4 +1,4 @@
-// Fil: js/main.js - ENDELIG, KORREKT OG RENSET VERSION
+// Fil: js/main.js
 
 import { supabaseClient } from './supabaseClient.js';
 import { initializeCalendar, getDailyLogs } from './modules/calendarManager.js';
@@ -9,7 +9,7 @@ import { formatDateKey } from './modules/utils.js';
 import { initializeStravaConnection } from './modules/stravaManager.js';
 import { loadProfile, initializeAutosave } from './modules/profileManager.js';
 
-// --- DEFINER ELEMENTER OG FUNKTIONER ---
+// --- DEFINER ELEMENTER ---
 
 const loginSection = document.getElementById('login-section');
 const appSection = document.getElementById('app-section');
@@ -22,30 +22,25 @@ const signupButton = document.getElementById('signup-button');
 const emailInput = document.getElementById('email-input');
 const passwordInput = document.getElementById('password-input');
 
+// --- APPENS HOVEDFUNKTIONER ---
 async function main() {
     console.log("main() starter: Henter brugerdata...");
     if(loadingOverlay) loadingOverlay.classList.remove('hidden');
     try {
         const profile = await loadProfile();
         await loadActivePlan();
-
         initializePlanPage();
         await initializeCalendar();
-        
         const allLogs = getDailyLogs();
         updateHomePageDashboard(allLogs);
-        
         initializeAnalysePage();
         initializeStravaConnection();
         initializeAutosave();
-
         updateDashboardHeader(profile);
         updateDashboardStatus();
-        
         console.log("main() færdig: Alle moduler er initialiseret.");
         const hjemButton = document.querySelector('.nav-btn[data-page="hjem"]');
         if(hjemButton) hjemButton.click();
-
     } catch (error) {
         console.error("Fejl under initialisering af appen:", error);
         alert("Der skete en fejl under indlæsning af dine data.");
@@ -100,11 +95,9 @@ function updateDashboardStatus() {
 
 // --- HOVED-LOGIK: DEN ENESTE INDGANG TIL APPEN ---
 
-let appInitialized = false;
-
-supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    console.log(`onAuthStateChange event: ${event}`);
-
+// --- DEN ENESTE INDGANG TIL APPEN ---
+async functioninitializeApp() {
+    // 1. Håndter Strava-omdirigering FØR alt andet
     const params = new URLSearchParams(window.location.search);
     if (params.has('code') && params.has('scope')) {
         document.body.innerHTML = '<h1>Forbinder til Strava... Vent venligst.</h1>';
@@ -115,39 +108,43 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
                 body: JSON.stringify({ code: params.get('code'), redirect_uri: window.location.origin })
             });
             if (!response.ok) throw new Error((await response.json()).message || 'Kunne ikke udveksle Strava-kode.');
-            
             const data = await response.json();
             localStorage.setItem('strava_access_token', data.access_token);
             localStorage.setItem('strava_refresh_token', data.refresh_token);
             localStorage.setItem('strava_token_expires_at', data.expires_at);
             localStorage.setItem('strava_athlete_info', JSON.stringify(data.athlete));
-            
             window.location.replace(window.location.pathname);
         } catch (error) {
             document.body.innerHTML = `<h1>Fejl under Strava-login: ${error.message}</h1>`;
         }
-        return;
+        return; // Stop alt videre, siden genindlæses
     }
 
-    if (session && !appInitialized) {
-        appInitialized = true;
-        
+    // 2. Tjek for en eksisterende session én gang ved start
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+        // Bruger er logget ind: Start appen
         if(appSection) appSection.style.display = 'block';
         if(loginSection) loginSection.style.display = 'none';
         if(logoutButton) logoutButton.style.display = 'block';
-        
         await main();
-    
-    } else if (!session) {
-        appInitialized = false;
-        
+    } else {
+        // Bruger er ikke logget ind: Vis login-skærm
         if(appSection) appSection.style.display = 'none';
         if(loginSection) loginSection.style.display = 'block';
         if(logoutButton) logoutButton.style.display = 'none';
-        
-        if(loadingOverlay) loadingOverlay.classList.add('hidden');
     }
-});
+
+    // 3. Lyt KUN efter fremtidige ændringer (specifikt logout)
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT') {
+            window.location.reload(); // Genindlæs for at komme til en ren login-skærm
+        }
+    });
+}
+
+// --- KØRSEL OG EVENT LISTENERS ---
+initializeApp(); // Start hele applikationen
 
 // Opsæt simple Event Listeners
 navButtons.forEach(button => {
@@ -158,6 +155,8 @@ navButtons.forEach(button => {
         button.classList.add('active');
     });
 });
+
+// Auth knapper
 
 loginButton?.addEventListener('click', async () => {
     const { error } = await supabaseClient.auth.signInWithPassword({
@@ -180,6 +179,5 @@ signupButton?.addEventListener('click', async () => {
 });
 
 logoutButton?.addEventListener('click', async () => {
-    const { error } = await supabaseClient.auth.signOut();
-    if (error) console.error('Fejl ved log ud:', error);
+    await supabaseClient.auth.signOut();
 });
