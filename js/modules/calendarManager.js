@@ -320,7 +320,7 @@ export async function initializeCalendar() {
                     avg_watt: 0,
                     avg_hr: 0,
                     activity_count: 0, // Tæller til at beregne gennemsnit
-                    strava_activity_id: activity.id.toString(), // Gemmer ID fra den første aktivitet
+                    stravaActivityId: activity.id.toString(), // Gemmer ID fra den første aktivitet
                     notes: `Importeret fra Strava:\n- ${activity.name}`
                 };
             }
