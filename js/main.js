@@ -109,16 +109,20 @@ async function initializeApp() {
         return;
     }
 
-    const { data: { session } } = await supabaseClient.auth.getSession();
+const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
         if(appSection) appSection.style.display = 'block';
         if(loginSection) loginSection.style.display = 'none';
         if(logoutButton) logoutButton.style.display = 'block';
         await main();
     } else {
+        // Bruger er ikke logget ind
         if(appSection) appSection.style.display = 'none';
         if(loginSection) loginSection.style.display = 'block';
         if(logoutButton) logoutButton.style.display = 'none';
+        
+        // RETTET: Sørg for at spinneren ALTID er skjult, når vi viser login-siden
+        if(loadingOverlay) loadingOverlay.classList.add('hidden');
     }
 
     supabaseClient.auth.onAuthStateChange((event, session) => {
