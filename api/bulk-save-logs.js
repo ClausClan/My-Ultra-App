@@ -1,4 +1,4 @@
-// Fil: /api/bulk-save-logs.js - FORBEDRET TIL MULTI-USER
+// Fil: /api/bulk-save-logs.js - KORREKT MULTI-USER VERSION
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Hent brugeren fra access token
+    // Hent den aktive bruger fra det medsendte token
     const { data: { user } } = await supabase.auth.getUser(req.headers.authorization.split(' ')[1]);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -20,16 +20,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Request body must be a non-empty array of logs' });
     }
 
-    // 2. Tilføj brugerens ID til HVER log i array'et
+    // VIGTIGT: Her tilføjer vi brugerens ID til HVER log i array'et
     const logsToSave = logsArray.map(log => ({
         ...log,
         user_id: user.id
     }));
 
-    // 3. Brug upsert til at opdatere eksisterende datoer for denne bruger
+    // Brug 'upsert' til at opdatere eksisterende datoer eller indsætte nye
     const { data, error } = await supabase
       .from('daily_logs')
-      .upsert(logsToSave, { onConflict: 'date, user_id' }); // <-- Vigtig ændring!
+      .upsert(logsToSave, { onConflict: 'date, user_id' });
 
     if (error) {
       console.error('Supabase bulk save error:', error);
