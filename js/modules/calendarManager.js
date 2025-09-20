@@ -313,7 +313,7 @@ export async function initializeCalendar() {
                 elevation: activity.total_elevation_gain ? Math.round(activity.total_elevation_gain) : null,
                 avg_watt: activity.average_watts ? Math.round(activity.average_watts) : null,
                 avg_hr: activity.average_heartrate ? Math.round(activity.average_heartrate) : null,
-                strava_activity_id: activity.id.toString(),
+                stravaActivityId: activity.id.toString(),
                 notes: `Importeret fra Strava: ${activity.name}`
             };
         });
