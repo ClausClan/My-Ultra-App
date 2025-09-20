@@ -280,59 +280,62 @@ export async function initializeCalendar() {
     addSafeListener('load-calendar', 'click', () => document.getElementById('calendar-file-input').click());
     addSafeListener('calendar-file-input', 'change', (event) => { /* ... uændret ... */ });
 
-    addSafeListener('syncStravaBtn', 'click', async () => {
-        const syncBtn = document.getElementById('syncStravaBtn');
-        const originalText = 'Synkroniser med Strava';
-        syncBtn.textContent = 'Henter aktivitetsliste...';
-        syncBtn.disabled = true;
-        try {
-            const activities = await fetchActivities();
-            localStorage.setItem('strava_activities', JSON.stringify(activities));
-            stravaActivities = activities;
-            const importedActivityIds = new Set(allLogs.map(log => log.stravaActivityId).filter(id => id));
-            const newActivities = activities.filter(act => !importedActivityIds.has(act.id.toString()));
+    addSafeListener('syncStravaBtn', 'click', async () => { // <--- 'async' er nøglen
+    const syncBtn = document.getElementById('syncStravaBtn');
+    if (!syncBtn) return;
+    const originalText = 'Synkroniser med Strava';
+    
+    syncBtn.textContent = 'Henter aktivitetsliste...';
+    syncBtn.disabled = true;
 
-            if (newActivities.length === 0) {
-                syncBtn.textContent = 'Alt er synkroniseret!';
-                setTimeout(() => { syncBtn.textContent = originalText; syncBtn.disabled = false; }, 2000);
-                return;
-            }
+    try {
+        const activities = await fetchActivities();
+        const importedActivityIds = new Set(allLogs.map(log => log.strava_activity_id).filter(id => id));
+        const newActivities = activities.filter(act => !importedActivityIds.has(act.id.toString()));
 
-            syncBtn.textContent = `Fandt ${newActivities.length} nye. Forbereder...`;
-            const logsToCreate = newActivities.map(activity => {
-                console.log("Rå aktivitet-data modtaget fra Strava:", activity);
-
-            const logsToCreate = newActivities.map(activity => {
-                const dateKey = activity.start_date_local.split('T')[0];
-                return {
-                    date: dateKey,
-                    distance: activity.distance ? (activity.distance / 1000).toFixed(2) : null,
-                    duration: activity.moving_time ? Math.round(activity.moving_time / 60) : null,
-                    elevation: activity.total_elevation_gain ? Math.round(activity.total_elevation_gain) : null,
-                    avg_watt: activity.average_watts ? Math.round(activity.average_watts) : null,
-                    avg_hr: activity.average_heartrate ? Math.round(activity.average_heartrate) : null,
-                    strava_activity_id: activity.id.toString(),
-                    notes: `Importeret fra Strava: ${activity.name}`
-                };
-            });
-
-            syncBtn.textContent = 'Gemmer i database...';
-            const response = await authenticatedFetch('/api/bulk-save-logs', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(logsToCreate),
-            });
-            if (!response.ok) throw new Error("Kunne ikke gemme de synkroniserede data til databasen.");
-
-            alert(`${logsToCreate.length} nye aktiviteter blev synkroniseret! Siden genindlæses nu.`);
-            location.reload();
-        } catch (error) {
-            console.error("Fejl under Strava-synkronisering:", error);
-            alert(`Der opstod en fejl under synkronisering: ${error.message}`);
-            syncBtn.textContent = originalText;
-            syncBtn.disabled = false;
+        if (newActivities.length === 0) {
+            syncBtn.textContent = 'Alt er synkroniseret!';
+            setTimeout(() => { 
+                syncBtn.textContent = originalText; 
+                syncBtn.disabled = false; 
+            }, 2000);
+            return;
         }
-    });
+
+        syncBtn.textContent = `Fandt ${newActivities.length} nye. Forbereder...`;
+        
+        const logsToCreate = newActivities.map(activity => {
+            const dateKey = activity.start_date_local.split('T')[0];
+            return {
+                date: dateKey,
+                distance: activity.distance ? (activity.distance / 1000).toFixed(2) : null,
+                duration: activity.moving_time ? Math.round(activity.moving_time / 60) : null,
+                elevation: activity.total_elevation_gain ? Math.round(activity.total_elevation_gain) : null,
+                avg_watt: activity.average_watts ? Math.round(activity.average_watts) : null,
+                avg_hr: activity.average_heartrate ? Math.round(activity.average_heartrate) : null,
+                strava_activity_id: activity.id.toString(),
+                notes: `Importeret fra Strava: ${activity.name}`
+            };
+        });
+
+        syncBtn.textContent = 'Gemmer i database...';
+        const response = await authenticatedFetch('/api/bulk-save-logs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(logsToCreate),
+        });
+        if (!response.ok) throw new Error("Kunne ikke gemme de synkroniserede data til databasen.");
+
+        alert(`${logsToCreate.length} nye aktiviteter blev synkroniseret! Siden genindlæses nu.`);
+        location.reload();
+
+    } catch (error) {
+        console.error("Fejl under Strava-synkronisering:", error);
+        alert(`Der opstod en fejl under synkronisering: ${error.message}`);
+        syncBtn.textContent = originalText;
+        syncBtn.disabled = false;
+    }
+});
 
     // NYT: Returner de hentede logs, så andre kan bruge dem
     return allLogs; 
