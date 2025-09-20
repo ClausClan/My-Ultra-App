@@ -280,7 +280,7 @@ export async function initializeCalendar() {
     addSafeListener('load-calendar', 'click', () => document.getElementById('calendar-file-input').click());
     addSafeListener('calendar-file-input', 'change', (event) => { /* ... uændret ... */ });
 
-    addSafeListener('syncStravaBtn', 'click', async () => { // <--- 'async' er nøglen
+    addSafeListener('syncStravaBtn', 'click', async () => {
     const syncBtn = document.getElementById('syncStravaBtn');
     if (!syncBtn) return;
     const originalText = 'Synkroniser med Strava';
@@ -304,19 +304,58 @@ export async function initializeCalendar() {
 
         syncBtn.textContent = `Fandt ${newActivities.length} nye. Forbereder...`;
         
-        const logsToCreate = newActivities.map(activity => {
+        // --- NY, KLOGERE LOGIK TIL AT SAMLE DATA PR. DAG ---
+        const dailyLogsMap = {};
+
+        newActivities.forEach(activity => {
             const dateKey = activity.start_date_local.split('T')[0];
-            return {
-                date: dateKey,
-                distance: activity.distance ? (activity.distance / 1000).toFixed(2) : null,
-                duration: activity.moving_time ? Math.round(activity.moving_time / 60) : null,
-                elevation: activity.total_elevation_gain ? Math.round(activity.total_elevation_gain) : null,
-                avg_watt: activity.average_watts ? Math.round(activity.average_watts) : null,
-                avg_hr: activity.average_heartrate ? Math.round(activity.average_heartrate) : null,
-                stravaActivityId: activity.id.toString(),
-                notes: `Importeret fra Strava: ${activity.name}`
-            };
+
+            if (!dailyLogsMap[dateKey]) {
+                // Hvis vi ikke har set denne dato før, opret en ny log
+                dailyLogsMap[dateKey] = {
+                    date: dateKey,
+                    distance: 0,
+                    duration: 0,
+                    elevation: 0,
+                    avg_watt: 0,
+                    avg_hr: 0,
+                    activity_count: 0, // Tæller til at beregne gennemsnit
+                    strava_activity_id: activity.id.toString(), // Gemmer ID fra den første aktivitet
+                    notes: `Importeret fra Strava:\n- ${activity.name}`
+                };
+            }
+
+            // Læg data sammen for aktiviteter på samme dag
+            dailyLogsMap[dateKey].distance += activity.distance ? (activity.distance / 1000) : 0;
+            dailyLogsMap[dateKey].duration += activity.moving_time ? Math.round(activity.moving_time / 60) : 0;
+            dailyLogsMap[dateKey].elevation += activity.total_elevation_gain ? Math.round(activity.total_elevation_gain) : 0;
+            
+            // Beregn løbende gennemsnit for puls og watt
+            if (activity.average_heartrate) {
+                const currentTotalHr = dailyLogsMap[dateKey].avg_hr * dailyLogsMap[dateKey].activity_count;
+                dailyLogsMap[dateKey].avg_hr = (currentTotalHr + activity.average_heartrate) / (dailyLogsMap[dateKey].activity_count + 1);
+            }
+            if (activity.average_watts) {
+                const currentTotalWatt = dailyLogsMap[dateKey].avg_watt * dailyLogsMap[dateKey].activity_count;
+                dailyLogsMap[dateKey].avg_watt = (currentTotalWatt + activity.average_watts) / (dailyLogsMap[dateKey].activity_count + 1);
+            }
+            
+            dailyLogsMap[dateKey].activity_count += 1;
+            if (dailyLogsMap[dateKey].activity_count > 1) {
+                dailyLogsMap[dateKey].notes += `\n- ${activity.name}`;
+            }
         });
+
+        // Omdan det samlede map til et array, klar til at blive sendt
+        const logsToCreate = Object.values(dailyLogsMap).map(log => {
+             // Formater og afrund de endelige værdier
+            log.distance = parseFloat(log.distance.toFixed(2));
+            log.avg_hr = Math.round(log.avg_hr);
+            log.avg_watt = Math.round(log.avg_watt);
+            delete log.activity_count; // Fjern hjælpe-tælleren
+            return log;
+        });
+        // --- SLUT PÅ NY LOGIK ---
 
         syncBtn.textContent = 'Gemmer i database...';
         const response = await authenticatedFetch('/api/bulk-save-logs', {
@@ -326,7 +365,7 @@ export async function initializeCalendar() {
         });
         if (!response.ok) throw new Error("Kunne ikke gemme de synkroniserede data til databasen.");
 
-        alert(`${logsToCreate.length} nye aktiviteter blev synkroniseret! Siden genindlæses nu.`);
+        alert(`${logsToCreate.length} dages træning blev synkroniseret! Siden genindlæses nu.`);
         location.reload();
 
     } catch (error) {
